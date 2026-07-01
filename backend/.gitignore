@@ -1,0 +1,13 @@
+# Собранные бинарники
+/bin/
+/server
+/server.exe
+/riotcheck
+/riotcheck.exe
+
+# Локальное окружение
+.env
+
+# Артефакты тестов
+*.out
+*.test

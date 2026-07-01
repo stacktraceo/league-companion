@@ -1,0 +1,28 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - contextcheck
+    - errorlint
+    - goconst
+    - misspell
+    - nilerr
+    - revive
+    - sqlclosecheck
+    - unconvert
+  settings:
+    revive:
+      rules:
+        - name: exported
+          disabled: false
+  exclusions:
+    rules:
+      - path: _test\.go$
+        linters:
+          - goconst
+
+formatters:
+  enable:
+    - gofmt
