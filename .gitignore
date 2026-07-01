@@ -1,0 +1,6 @@
+/.claude/
+
+# Секреты — только через .env, никогда в git (CLAUDE.md, «Конвенции»)
+.env
+.env.*
+!.env.example
