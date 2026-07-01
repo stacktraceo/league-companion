@@ -1,0 +1,73 @@
+{
+  "metadata": {
+    "dataVersion": "2",
+    "matchId": "EUW1_7000000001",
+    "participants": [
+      "test-puuid-0000000000000000000000000000000000000000000000000000000000000000000",
+      "test-puuid-1111111111111111111111111111111111111111111111111111111111111111111"
+    ]
+  },
+  "info": {
+    "gameCreation": 1700000000000,
+    "gameDuration": 1834,
+    "gameEndTimestamp": 1700001834000,
+    "gameStartTimestamp": 1700000000000,
+    "gameId": 7000000001,
+    "gameMode": "CLASSIC",
+    "gameName": "teambuilder-match-7000000001",
+    "gameType": "MATCHED_GAME",
+    "gameVersion": "14.1.556.1234",
+    "mapId": 11,
+    "platformId": "EUW1",
+    "queueId": 420,
+    "participants": [
+      {
+        "puuid": "test-puuid-0000000000000000000000000000000000000000000000000000000000000000000",
+        "championName": "Ahri",
+        "championId": 103,
+        "teamId": 100,
+        "kills": 11,
+        "deaths": 3,
+        "assists": 9,
+        "win": true,
+        "goldEarned": 14320,
+        "totalMinionsKilled": 187,
+        "neutralMinionsKilled": 14,
+        "champLevel": 17,
+        "riotIdGameName": "Test Summoner",
+        "riotIdTagline": "EUW",
+        "item0": 6653,
+        "item1": 3020,
+        "item2": 3157,
+        "perks": {
+          "styles": [
+            { "description": "primaryStyle", "style": 8200 }
+          ]
+        }
+      },
+      {
+        "puuid": "test-puuid-1111111111111111111111111111111111111111111111111111111111111111111",
+        "championName": "Darius",
+        "championId": 122,
+        "teamId": 200,
+        "kills": 4,
+        "deaths": 8,
+        "assists": 2,
+        "win": false,
+        "goldEarned": 10110,
+        "totalMinionsKilled": 154,
+        "neutralMinionsKilled": 0,
+        "champLevel": 15,
+        "riotIdGameName": "Другой Игрок",
+        "riotIdTagline": "RU1",
+        "item0": 6631,
+        "item1": 3047,
+        "item2": 3053
+      }
+    ],
+    "teams": [
+      { "teamId": 100, "win": true },
+      { "teamId": 200, "win": false }
+    ]
+  }
+}
