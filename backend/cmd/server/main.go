@@ -12,8 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
-
 	"github.com/stacktraceo/league-companion/backend/internal/config"
 	"github.com/stacktraceo/league-companion/backend/internal/httpapi"
 	"github.com/stacktraceo/league-companion/backend/internal/storage"
@@ -38,7 +36,10 @@ func main() {
 func run() error {
 	// .env удобен локально; в docker-compose переменные приходят из окружения,
 	// поэтому его отсутствие — не ошибка.
-	_ = godotenv.Load()
+	dotEnvFiles, err := config.LoadDotEnv()
+	if err != nil {
+		return err
+	}
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -48,7 +49,7 @@ func run() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel}))
 	slog.SetDefault(logger)
 
-	logger.Info("конфигурация загружена", "config", cfg)
+	logger.Info("конфигурация загружена", "config", cfg, "dotenv", dotEnvFiles)
 
 	// Миграции до подключения пула: если схема не поднялась, поднимать сервис
 	// смысла нет.

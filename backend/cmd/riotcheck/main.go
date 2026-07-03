@@ -18,8 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
-
+	"github.com/stacktraceo/league-companion/backend/internal/config"
 	"github.com/stacktraceo/league-companion/backend/internal/domain"
 	"github.com/stacktraceo/league-companion/backend/internal/riot"
 )
@@ -66,11 +65,13 @@ func run() error {
 	}
 
 	// .env локально; в CI/докере переменные приходят из окружения.
-	_ = godotenv.Load()
+	if _, err := config.LoadDotEnv(); err != nil {
+		return err
+	}
 
 	apiKey := strings.TrimSpace(os.Getenv("RIOT_API_KEY"))
 	if apiKey == "" {
-		return errors.New("RIOT_API_KEY не задан (положи его в backend/.env)")
+		return errors.New("RIOT_API_KEY не задан (положи его в .env — в корне репозитория или в backend/)")
 	}
 
 	logLevel := slog.LevelWarn
