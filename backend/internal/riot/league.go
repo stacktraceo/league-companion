@@ -22,7 +22,10 @@ func (c *Client) GetLeagueEntriesByPUUID(ctx context.Context, region, puuid stri
 	path := "/lol/league/v4/entries/by-puuid/" + url.PathEscape(puuid)
 
 	var entries []LeagueEntryDTO
-	if _, err := c.get(ctx, host, path, nil, &entries); err != nil {
+
+	// LP меняется после каждой игры — TTL короткий.
+	req := request{host: host, path: path, ttl: leagueTTL, out: &entries}
+	if _, err := c.do(ctx, req); err != nil {
 		return nil, err
 	}
 

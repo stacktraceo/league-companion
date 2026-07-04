@@ -48,7 +48,10 @@ func (c *Client) GetMatchIDsByPUUID(ctx context.Context, region, puuid string, s
 	}
 
 	var ids []string
-	if _, err := c.get(ctx, route.Host(), path, query, &ids); err != nil {
+
+	// TTL короткий: sync worker вехи 7 ходит сюда именно за свежими матчами.
+	req := request{host: route.Host(), path: path, query: query, ttl: matchIDsTTL, out: &ids}
+	if _, err := c.do(ctx, req); err != nil {
 		return nil, err
 	}
 
@@ -73,7 +76,11 @@ func (c *Client) GetMatch(ctx context.Context, region, matchID string) (*MatchDe
 
 	var match MatchDTO
 
-	raw, err := c.get(ctx, route.Host(), path, nil, &match)
+	// matchTTL = 0: матч неизменяем и целиком ложится в matches.raw_data —
+	// кэшировать сотни килобайт ещё и в Redis незачем.
+	req := request{host: route.Host(), path: path, ttl: matchTTL, out: &match}
+
+	raw, err := c.do(ctx, req)
 	if err != nil {
 		return nil, err
 	}

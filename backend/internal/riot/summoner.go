@@ -25,7 +25,9 @@ func (c *Client) GetSummonerByPUUID(ctx context.Context, region, puuid string) (
 	path := "/lol/summoner/v4/summoners/by-puuid/" + url.PathEscape(puuid)
 
 	var summoner SummonerDTO
-	if _, err := c.get(ctx, host, path, nil, &summoner); err != nil {
+
+	req := request{host: host, path: path, ttl: summonerTTL, out: &summoner}
+	if _, err := c.do(ctx, req); err != nil {
 		return nil, err
 	}
 

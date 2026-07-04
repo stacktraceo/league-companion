@@ -33,13 +33,18 @@ func fixture(t *testing.T, name string) string {
 
 // newTestClient поднимает httptest-сервер с заданным обработчиком и возвращает
 // клиент, направленный на него.
-func newTestClient(t *testing.T, handler http.HandlerFunc) *Client {
+//
+// Повторы по умолчанию выключены: тесты ниже проверяют разбор одного ответа, а
+// с ретраями они ждали бы настоящий backoff. Сами повторы проверяются в retry_test.go.
+func newTestClient(t *testing.T, handler http.HandlerFunc, opts ...Option) *Client {
 	t.Helper()
 
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
 
-	return New(testAPIKey, WithBaseURL(server.URL))
+	options := append([]Option{WithBaseURL(server.URL), WithRetry(1, 0)}, opts...)
+
+	return New(testAPIKey, options...)
 }
 
 // jsonHandler отдаёт готовое тело и записывает пришедший запрос.

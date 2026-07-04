@@ -26,7 +26,10 @@ func (c *Client) GetAccountByRiotID(ctx context.Context, region, gameName, tagLi
 	path := "/riot/account/v1/accounts/by-riot-id/" + url.PathEscape(gameName) + "/" + url.PathEscape(tagLine)
 
 	var account AccountDTO
-	if _, err := c.get(ctx, route.Host(), path, nil, &account); err != nil {
+
+	// Riot ID → PUUID меняется только при смене ника, поэтому TTL длинный.
+	req := request{host: route.Host(), path: path, ttl: accountTTL, out: &account}
+	if _, err := c.do(ctx, req); err != nil {
 		return nil, err
 	}
 
