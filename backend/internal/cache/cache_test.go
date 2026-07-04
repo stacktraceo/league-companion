@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"log/slog"
@@ -218,6 +219,19 @@ func TestMemoryIsSafeForConcurrentUse(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+// go-redis по умолчанию пишет свои ошибки мимо slog — проверяем, что перехват
+// работает и структурные логи остаются единственным каналом (SPEC.md 3.6).
+func TestRedisLoggerWritesToSlog(t *testing.T) {
+	var buf bytes.Buffer
+
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	redisLogger{logger: logger}.Printf(context.Background(), "failed to dial after %d attempts", 5)
+
+	assert.Contains(t, buf.String(), "failed to dial after 5 attempts")
+	assert.Contains(t, buf.String(), "source=go-redis")
+	assert.Contains(t, buf.String(), "level=WARN")
 }
 
 func TestOpenFallsBackToMemory(t *testing.T) {
