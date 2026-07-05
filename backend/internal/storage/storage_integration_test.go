@@ -83,6 +83,16 @@ func testParticipant(matchID, puuid string) domain.MatchParticipant {
 	}
 }
 
+// mustUpsert сохраняет саммонера и возвращает признак «создан впервые».
+func mustUpsert(t *testing.T, ctx context.Context, repo *Summoners, summoner domain.Summoner) bool {
+	t.Helper()
+
+	created, err := repo.Upsert(ctx, summoner)
+	require.NoError(t, err)
+
+	return created
+}
+
 func countRows(t *testing.T, pool *pgxpool.Pool, table string) int {
 	t.Helper()
 
@@ -98,7 +108,7 @@ func TestSummonerUpsertRefreshesProfile(t *testing.T) {
 	ctx := context.Background()
 
 	summoner := testSummoner("puuid-1")
-	require.NoError(t, repo.Upsert(ctx, summoner))
+	assert.True(t, mustUpsert(t, ctx, repo, summoner), "первое добавление — создание")
 
 	stored, err := repo.ByPUUID(ctx, "puuid-1")
 	require.NoError(t, err)
@@ -109,7 +119,8 @@ func TestSummonerUpsertRefreshesProfile(t *testing.T) {
 	// Повторное добавление обязано подтянуть свежий профиль, а не промолчать.
 	summoner.SummonerLevel = 137
 	summoner.ProfileIconID = 7
-	require.NoError(t, repo.Upsert(ctx, summoner))
+	assert.False(t, mustUpsert(t, ctx, repo, summoner),
+		"повторное — обновление, по нему хендлер отличает 200 от 201")
 
 	updated, err := repo.ByPUUID(ctx, "puuid-1")
 	require.NoError(t, err)
@@ -132,8 +143,8 @@ func TestMarkSyncedAndTrackedPUUIDs(t *testing.T) {
 	repo := NewSummoners(testPool(t))
 	ctx := context.Background()
 
-	require.NoError(t, repo.Upsert(ctx, testSummoner("puuid-1")))
-	require.NoError(t, repo.Upsert(ctx, testSummoner("puuid-2")))
+	mustUpsert(t, ctx, repo, testSummoner("puuid-1"))
+	mustUpsert(t, ctx, repo, testSummoner("puuid-2"))
 
 	at := time.Now().UTC().Truncate(time.Millisecond)
 	require.NoError(t, repo.MarkSynced(ctx, "puuid-1", at))
@@ -154,7 +165,7 @@ func TestMarkSyncedAndTrackedPUUIDs(t *testing.T) {
 
 func TestRankedStatsReplaceDropsStaleQueues(t *testing.T) {
 	pool := testPool(t)
-	require.NoError(t, NewSummoners(pool).Upsert(context.Background(), testSummoner("puuid-1")))
+	mustUpsert(t, context.Background(), NewSummoners(pool), testSummoner("puuid-1"))
 
 	repo := NewRankedStats(pool)
 	ctx := context.Background()
@@ -195,7 +206,7 @@ func TestRankedStatsReplaceDropsStaleQueues(t *testing.T) {
 
 func TestMatchInsertIsIdempotent(t *testing.T) {
 	pool := testPool(t)
-	require.NoError(t, NewSummoners(pool).Upsert(context.Background(), testSummoner("puuid-1")))
+	mustUpsert(t, context.Background(), NewSummoners(pool), testSummoner("puuid-1"))
 
 	repo := NewMatches(pool)
 	ctx := context.Background()
@@ -216,8 +227,8 @@ func TestMatchInsertAddsSecondTrackedParticipant(t *testing.T) {
 	summoners := NewSummoners(pool)
 	ctx := context.Background()
 
-	require.NoError(t, summoners.Upsert(ctx, testSummoner("puuid-1")))
-	require.NoError(t, summoners.Upsert(ctx, testSummoner("puuid-2")))
+	mustUpsert(t, ctx, summoners, testSummoner("puuid-1"))
+	mustUpsert(t, ctx, summoners, testSummoner("puuid-2"))
 
 	repo := NewMatches(pool)
 	match := testMatch("EUW1_1", time.Now().UTC())
@@ -231,7 +242,7 @@ func TestMatchInsertAddsSecondTrackedParticipant(t *testing.T) {
 
 func TestKnownIDs(t *testing.T) {
 	pool := testPool(t)
-	require.NoError(t, NewSummoners(pool).Upsert(context.Background(), testSummoner("puuid-1")))
+	mustUpsert(t, context.Background(), NewSummoners(pool), testSummoner("puuid-1"))
 
 	repo := NewMatches(pool)
 	ctx := context.Background()
@@ -249,7 +260,7 @@ func TestKnownIDs(t *testing.T) {
 
 func TestListByPUUIDPaginatesNewestFirst(t *testing.T) {
 	pool := testPool(t)
-	require.NoError(t, NewSummoners(pool).Upsert(context.Background(), testSummoner("puuid-1")))
+	mustUpsert(t, context.Background(), NewSummoners(pool), testSummoner("puuid-1"))
 
 	repo := NewMatches(pool)
 	ctx := context.Background()
@@ -284,7 +295,7 @@ func TestListByPUUIDPaginatesNewestFirst(t *testing.T) {
 
 func TestRawByID(t *testing.T) {
 	pool := testPool(t)
-	require.NoError(t, NewSummoners(pool).Upsert(context.Background(), testSummoner("puuid-1")))
+	mustUpsert(t, context.Background(), NewSummoners(pool), testSummoner("puuid-1"))
 
 	repo := NewMatches(pool)
 	ctx := context.Background()
@@ -303,7 +314,7 @@ func TestRawByID(t *testing.T) {
 func TestDeletingSummonerCascadesToParticipation(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
-	require.NoError(t, NewSummoners(pool).Upsert(ctx, testSummoner("puuid-1")))
+	mustUpsert(t, ctx, NewSummoners(pool), testSummoner("puuid-1"))
 
 	repo := NewMatches(pool)
 	require.NoError(t, repo.Insert(ctx, testMatch("EUW1_1", time.Now().UTC()),

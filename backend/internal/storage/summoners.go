@@ -21,7 +21,7 @@ func NewSummoners(pool *pgxpool.Pool) *Summoners {
 	return &Summoners{pool: pool}
 }
 
-// Upsert создаёт или обновляет запись саммонера.
+// Upsert создаёт или обновляет запись саммонера и сообщает, была ли она создана.
 //
 // Здесь именно DO UPDATE, а не DO NOTHING из CLAUDE.md (отклонение 2): то правило
 // про matches и match_participants, где повторная вставка означает гонку двух
@@ -30,7 +30,10 @@ func NewSummoners(pool *pgxpool.Pool) *Summoners {
 //
 // created_at и last_synced_at не трогаем: первый принадлежит моменту создания,
 // второй — синхронизации (MarkSynced).
-func (r *Summoners) Upsert(ctx context.Context, summoner domain.Summoner) error {
+func (r *Summoners) Upsert(ctx context.Context, summoner domain.Summoner) (bool, error) {
+	// xmax = 0 у возвращённой строки означает, что она вставлена, а не обновлена.
+	// Так хендлер отличает 201 от 200, не делая лишнего SELECT и не открывая окно
+	// для гонки между проверкой и вставкой.
 	const query = `
 		INSERT INTO summoners (puuid, riot_id, tag_line, region, summoner_level, profile_icon_id)
 		VALUES ($1, $2, $3, $4, $5, $6)
@@ -39,16 +42,19 @@ func (r *Summoners) Upsert(ctx context.Context, summoner domain.Summoner) error 
 			tag_line        = EXCLUDED.tag_line,
 			region          = EXCLUDED.region,
 			summoner_level  = EXCLUDED.summoner_level,
-			profile_icon_id = EXCLUDED.profile_icon_id`
+			profile_icon_id = EXCLUDED.profile_icon_id
+		RETURNING xmax = 0`
 
-	_, err := r.pool.Exec(ctx, query,
+	var created bool
+
+	err := r.pool.QueryRow(ctx, query,
 		summoner.PUUID, summoner.RiotID, summoner.TagLine, summoner.Region,
-		summoner.SummonerLevel, summoner.ProfileIconID)
+		summoner.SummonerLevel, summoner.ProfileIconID).Scan(&created)
 	if err != nil {
-		return fmt.Errorf("storage: сохранение саммонера: %w", err)
+		return false, fmt.Errorf("storage: сохранение саммонера: %w", err)
 	}
 
-	return nil
+	return created, nil
 }
 
 // ByPUUID возвращает саммонера или ErrNotFound.

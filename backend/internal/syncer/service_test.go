@@ -120,17 +120,18 @@ func newFakeRepos() *fakeRepos {
 	}
 }
 
-func (f *fakeRepos) Upsert(_ context.Context, summoner domain.Summoner) error {
+func (f *fakeRepos) Upsert(_ context.Context, summoner domain.Summoner) (bool, error) {
 	if f.upsertErr != nil {
-		return f.upsertErr
+		return false, f.upsertErr
 	}
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	_, existed := f.summoners[summoner.PUUID]
 	f.summoners[summoner.PUUID] = summoner
 
-	return nil
+	return !existed, nil
 }
 
 func (f *fakeRepos) ByPUUID(_ context.Context, puuid string) (domain.Summoner, error) {
@@ -258,8 +259,9 @@ func TestSyncProfileStoresSummonerAndRanks(t *testing.T) {
 	}
 	repos := newFakeRepos()
 
-	summoner, err := newTestService(client, repos).SyncProfile(context.Background(), testRegion, "Test", "EUW")
+	summoner, created, err := newTestService(client, repos).SyncProfile(context.Background(), testRegion, "Test", "EUW")
 	require.NoError(t, err)
+	assert.True(t, created, "саммонер добавлен впервые")
 
 	assert.Equal(t, "puuid-1", summoner.PUUID)
 	assert.Equal(t, "Test", summoner.RiotID)
@@ -282,7 +284,7 @@ func TestSyncProfileSurvivesLeagueFailure(t *testing.T) {
 	}
 	repos := newFakeRepos()
 
-	_, err := newTestService(client, repos).SyncProfile(context.Background(), testRegion, "Test", "EUW")
+	_, _, err := newTestService(client, repos).SyncProfile(context.Background(), testRegion, "Test", "EUW")
 	require.NoError(t, err)
 
 	assert.Contains(t, repos.summoners, "puuid-1")
@@ -295,14 +297,14 @@ func TestSyncProfilePropagatesRiotErrors(t *testing.T) {
 	t.Run("аккаунт не найден", func(t *testing.T) {
 		client := &fakeRiot{accountErr: riot.ErrNotFound}
 
-		_, err := newTestService(client, repos).SyncProfile(context.Background(), testRegion, "Nobody", "XXX")
+		_, _, err := newTestService(client, repos).SyncProfile(context.Background(), testRegion, "Nobody", "XXX")
 		assert.ErrorIs(t, err, riot.ErrNotFound)
 	})
 
 	t.Run("протухший ключ", func(t *testing.T) {
 		client := &fakeRiot{profileErr: riot.ErrUnauthorized}
 
-		_, err := newTestService(client, repos).SyncProfile(context.Background(), testRegion, "Test", "EUW")
+		_, _, err := newTestService(client, repos).SyncProfile(context.Background(), testRegion, "Test", "EUW")
 		assert.ErrorIs(t, err, riot.ErrUnauthorized)
 	})
 }

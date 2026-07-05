@@ -29,7 +29,8 @@ type RiotClient interface {
 
 // SummonerRepo — хранилище саммонеров.
 type SummonerRepo interface {
-	Upsert(ctx context.Context, summoner domain.Summoner) error
+	// Upsert возвращает true, если саммонер добавлен впервые.
+	Upsert(ctx context.Context, summoner domain.Summoner) (bool, error)
 	ByPUUID(ctx context.Context, puuid string) (domain.Summoner, error)
 	TrackedPUUIDs(ctx context.Context) (map[string]struct{}, error)
 	MarkSynced(ctx context.Context, puuid string, at time.Time) error
@@ -76,28 +77,33 @@ func NewService(
 }
 
 // SyncProfile резолвит Riot ID в PUUID и сохраняет профиль с рангами.
+// Второе значение — true, если саммонер добавлен впервые.
 //
 // Три запроса к Riot: Account-V1 (regional), Summoner-V4 и League-V4 (platform).
-func (s *Service) SyncProfile(ctx context.Context, region, gameName, tagLine string) (domain.Summoner, error) {
+func (s *Service) SyncProfile(
+	ctx context.Context,
+	region, gameName, tagLine string,
+) (domain.Summoner, bool, error) {
 	account, err := s.riot.GetAccountByRiotID(ctx, region, gameName, tagLine)
 	if err != nil {
-		return domain.Summoner{}, fmt.Errorf("резолв Riot ID %s#%s: %w", gameName, tagLine, err)
+		return domain.Summoner{}, false, fmt.Errorf("резолв Riot ID %s#%s: %w", gameName, tagLine, err)
 	}
 
 	profile, err := s.riot.GetSummonerByPUUID(ctx, region, account.PUUID)
 	if err != nil {
-		return domain.Summoner{}, fmt.Errorf("профиль саммонера: %w", err)
+		return domain.Summoner{}, false, fmt.Errorf("профиль саммонера: %w", err)
 	}
 
 	summoner := domain.SummonerFromRiot(*account, *profile, region)
 
-	if err := s.summoners.Upsert(ctx, summoner); err != nil {
-		return domain.Summoner{}, err
+	created, err := s.summoners.Upsert(ctx, summoner)
+	if err != nil {
+		return domain.Summoner{}, false, err
 	}
 
 	s.syncRanks(ctx, summoner)
 
-	return summoner, nil
+	return summoner, created, nil
 }
 
 // syncRanks обновляет ранговый снапшот.
