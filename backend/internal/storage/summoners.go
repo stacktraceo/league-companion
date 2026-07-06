@@ -21,7 +21,8 @@ func NewSummoners(pool *pgxpool.Pool) *Summoners {
 	return &Summoners{pool: pool}
 }
 
-// Upsert создаёт или обновляет запись саммонера и сообщает, была ли она создана.
+// Upsert создаёт или обновляет запись саммонера и возвращает её в том виде,
+// в каком она теперь лежит в базе, вместе с признаком «создана впервые».
 //
 // Здесь именно DO UPDATE, а не DO NOTHING из CLAUDE.md (отклонение 2): то правило
 // про matches и match_participants, где повторная вставка означает гонку двух
@@ -29,8 +30,10 @@ func NewSummoners(pool *pgxpool.Pool) *Summoners {
 // и иконку, иначе профиль замрёт на значениях первого дня.
 //
 // created_at и last_synced_at не трогаем: первый принадлежит моменту создания,
-// второй — синхронизации (MarkSynced).
-func (r *Summoners) Upsert(ctx context.Context, summoner domain.Summoner) (bool, error) {
+// второй — синхронизации (MarkSynced). Но вернуть их обязаны: у объекта, собранного
+// из ответа Riot, этих полей нет, и без RETURNING наружу уходил бы нулевой
+// created_at.
+func (r *Summoners) Upsert(ctx context.Context, summoner domain.Summoner) (domain.Summoner, bool, error) {
 	// xmax = 0 у возвращённой строки означает, что она вставлена, а не обновлена.
 	// Так хендлер отличает 201 от 200, не делая лишнего SELECT и не открывая окно
 	// для гонки между проверкой и вставкой.
@@ -43,18 +46,19 @@ func (r *Summoners) Upsert(ctx context.Context, summoner domain.Summoner) (bool,
 			region          = EXCLUDED.region,
 			summoner_level  = EXCLUDED.summoner_level,
 			profile_icon_id = EXCLUDED.profile_icon_id
-		RETURNING xmax = 0`
+		RETURNING puuid, riot_id, tag_line, region, summoner_level, profile_icon_id,
+		          last_synced_at, created_at, xmax = 0`
 
 	var created bool
 
-	err := r.pool.QueryRow(ctx, query,
+	stored, err := scanSummoner(r.pool.QueryRow(ctx, query,
 		summoner.PUUID, summoner.RiotID, summoner.TagLine, summoner.Region,
-		summoner.SummonerLevel, summoner.ProfileIconID).Scan(&created)
+		summoner.SummonerLevel, summoner.ProfileIconID), &created)
 	if err != nil {
-		return false, fmt.Errorf("storage: сохранение саммонера: %w", err)
+		return domain.Summoner{}, false, fmt.Errorf("storage: сохранение саммонера: %w", err)
 	}
 
-	return created, nil
+	return stored, created, nil
 }
 
 // ByPUUID возвращает саммонера или ErrNotFound.
@@ -159,14 +163,16 @@ type scanner interface {
 	Scan(dest ...any) error
 }
 
-func scanSummoner(row scanner) (domain.Summoner, error) {
+// scanSummoner читает саммонера из строки. Цели из tail читаются после колонок
+// саммонера — так Upsert добирает свой признак создания, не дублируя список полей.
+func scanSummoner(row scanner, tail ...any) (domain.Summoner, error) {
 	var (
 		summoner      domain.Summoner
 		summonerLevel *int
 		profileIconID *int
 	)
 
-	err := row.Scan(
+	targets := []any{
 		&summoner.PUUID,
 		&summoner.RiotID,
 		&summoner.TagLine,
@@ -175,8 +181,9 @@ func scanSummoner(row scanner) (domain.Summoner, error) {
 		&profileIconID,
 		&summoner.LastSyncedAt,
 		&summoner.CreatedAt,
-	)
-	if err != nil {
+	}
+
+	if err := row.Scan(append(targets, tail...)...); err != nil {
 		return domain.Summoner{}, err
 	}
 

@@ -23,9 +23,10 @@ func testRawDeps() Deps {
 	return deps
 }
 
-// Ответ Riot доходит до клиента байт в байт: пересериализация могла бы потерять
-// поля, которых нет в наших структурах.
-func TestGetMatchReturnsRawJSONVerbatim(t *testing.T) {
+// Хендлер отдаёт сохранённый документ, ничего не пересобирая: своя сериализация
+// потеряла бы поля, которых нет в наших структурах. Сравнение через JSONEq, а не
+// по байтам, — jsonb на стороне Postgres всё равно переставит ключи.
+func TestGetMatchReturnsRawJSONUnchanged(t *testing.T) {
 	rec := call(t, testRawDeps(), http.MethodGet, "/api/v1/matches/EUW1_7", "")
 
 	require.Equal(t, http.StatusOK, rec.Code, "тело: %s", rec.Body.String())

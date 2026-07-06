@@ -87,8 +87,13 @@ func testParticipant(matchID, puuid string) domain.MatchParticipant {
 func mustUpsert(t *testing.T, ctx context.Context, repo *Summoners, summoner domain.Summoner) bool {
 	t.Helper()
 
-	created, err := repo.Upsert(ctx, summoner)
+	stored, created, err := repo.Upsert(ctx, summoner)
 	require.NoError(t, err)
+
+	// Upsert обязан вернуть строку, а не то, что ему передали: created_at
+	// заполняет база, и именно он уходит в ответ API на POST /summoners.
+	assert.Equal(t, summoner.PUUID, stored.PUUID)
+	assert.False(t, stored.CreatedAt.IsZero(), "created_at приходит из базы")
 
 	return created
 }

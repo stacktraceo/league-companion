@@ -19,7 +19,12 @@ import (
 
 const testRegion = "euw1"
 
-var testNow = time.Date(2026, 7, 29, 12, 0, 0, 0, time.UTC)
+var (
+	testNow = time.Date(2026, 7, 29, 12, 0, 0, 0, time.UTC)
+
+	// testUpsertedAt — created_at, который «выставляет база» при первой вставке.
+	testUpsertedAt = time.Date(2026, 7, 29, 11, 0, 0, 0, time.UTC)
+)
 
 // fakeRiot — управляемый клиент Riot: отдаёт заготовленные ответы и считает вызовы.
 type fakeRiot struct {
@@ -120,18 +125,27 @@ func newFakeRepos() *fakeRepos {
 	}
 }
 
-func (f *fakeRepos) Upsert(_ context.Context, summoner domain.Summoner) (bool, error) {
+func (f *fakeRepos) Upsert(_ context.Context, summoner domain.Summoner) (domain.Summoner, bool, error) {
 	if f.upsertErr != nil {
-		return false, f.upsertErr
+		return domain.Summoner{}, false, f.upsertErr
 	}
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
 	_, existed := f.summoners[summoner.PUUID]
-	f.summoners[summoner.PUUID] = summoner
 
-	return !existed, nil
+	// Как в базе: created_at выставляет она, а не вызывающий.
+	stored := summoner
+	if existed {
+		stored.CreatedAt = f.summoners[summoner.PUUID].CreatedAt
+	} else {
+		stored.CreatedAt = testUpsertedAt
+	}
+
+	f.summoners[summoner.PUUID] = stored
+
+	return stored, !existed, nil
 }
 
 func (f *fakeRepos) ByPUUID(_ context.Context, puuid string) (domain.Summoner, error) {
@@ -267,6 +281,10 @@ func TestSyncProfileStoresSummonerAndRanks(t *testing.T) {
 	assert.Equal(t, "Test", summoner.RiotID)
 	assert.Equal(t, testRegion, summoner.Region, "регион берётся от вызывающего: Riot его не возвращает")
 	assert.Equal(t, 412, summoner.SummonerLevel)
+
+	// Наружу уходит сохранённая строка, а не собранная из ответа Riot: created_at
+	// знает только база, и без этого в API утекал бы нулевой timestamp.
+	assert.Equal(t, testUpsertedAt, summoner.CreatedAt)
 
 	require.Contains(t, repos.summoners, "puuid-1")
 	require.Len(t, repos.ranked["puuid-1"], 1)

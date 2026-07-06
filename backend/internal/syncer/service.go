@@ -29,8 +29,8 @@ type RiotClient interface {
 
 // SummonerRepo — хранилище саммонеров.
 type SummonerRepo interface {
-	// Upsert возвращает true, если саммонер добавлен впервые.
-	Upsert(ctx context.Context, summoner domain.Summoner) (bool, error)
+	// Upsert возвращает сохранённую строку и true, если саммонер добавлен впервые.
+	Upsert(ctx context.Context, summoner domain.Summoner) (domain.Summoner, bool, error)
 	ByPUUID(ctx context.Context, puuid string) (domain.Summoner, error)
 	TrackedPUUIDs(ctx context.Context) (map[string]struct{}, error)
 	MarkSynced(ctx context.Context, puuid string, at time.Time) error
@@ -79,6 +79,9 @@ func NewService(
 // SyncProfile резолвит Riot ID в PUUID и сохраняет профиль с рангами.
 // Второе значение — true, если саммонер добавлен впервые.
 //
+// Возвращается сохранённая строка, а не собранная из ответа Riot: created_at
+// и last_synced_at знает только база.
+//
 // Три запроса к Riot: Account-V1 (regional), Summoner-V4 и League-V4 (platform).
 func (s *Service) SyncProfile(
 	ctx context.Context,
@@ -94,16 +97,14 @@ func (s *Service) SyncProfile(
 		return domain.Summoner{}, false, fmt.Errorf("профиль саммонера: %w", err)
 	}
 
-	summoner := domain.SummonerFromRiot(*account, *profile, region)
-
-	created, err := s.summoners.Upsert(ctx, summoner)
+	stored, created, err := s.summoners.Upsert(ctx, domain.SummonerFromRiot(*account, *profile, region))
 	if err != nil {
 		return domain.Summoner{}, false, err
 	}
 
-	s.syncRanks(ctx, summoner)
+	s.syncRanks(ctx, stored)
 
-	return summoner, created, nil
+	return stored, created, nil
 }
 
 // syncRanks обновляет ранговый снапшот.
