@@ -1,11 +1,8 @@
 package httpapi
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,18 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type stubPinger struct {
-	err error
-}
-
-func (s stubPinger) Ping(context.Context) error { return s.err }
-
-func testLogger() *slog.Logger {
-	return slog.New(slog.NewJSONHandler(io.Discard, nil))
-}
-
 func TestHealthzOK(t *testing.T) {
-	router := NewRouter(testLogger(), stubPinger{})
+	router := newHealthRouter(t, stubPinger{})
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
@@ -39,7 +26,7 @@ func TestHealthzOK(t *testing.T) {
 }
 
 func TestHealthzReportsDatabaseFailure(t *testing.T) {
-	router := NewRouter(testLogger(), stubPinger{err: errors.New("connection refused")})
+	router := newHealthRouter(t, stubPinger{err: errors.New("connection refused")})
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
@@ -56,7 +43,7 @@ func TestHealthzReportsDatabaseFailure(t *testing.T) {
 }
 
 func TestRequestIDHeaderIsSet(t *testing.T) {
-	router := NewRouter(testLogger(), stubPinger{})
+	router := newHealthRouter(t, stubPinger{})
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
@@ -65,17 +52,17 @@ func TestRequestIDHeaderIsSet(t *testing.T) {
 }
 
 func TestUnknownRouteReturns404(t *testing.T) {
-	router := NewRouter(testLogger(), stubPinger{})
+	router := newHealthRouter(t, stubPinger{})
 
 	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/summoners", nil))
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/такого-маршрута-нет", nil))
 
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
 
 // Паника в хендлере не должна ронять процесс — Recoverer обязан её поймать.
 func TestRecovererCatchesPanic(t *testing.T) {
-	router := NewRouter(testLogger(), stubPinger{})
+	router := newHealthRouter(t, stubPinger{})
 	router.Get("/boom", func(http.ResponseWriter, *http.Request) {
 		panic("boom")
 	})
@@ -97,7 +84,7 @@ func TestRecovererCatchesPanic(t *testing.T) {
 // http.ErrAbortHandler — штатный способ оборвать ответ, его Recoverer обязан
 // пробросить дальше, а не превращать в 500.
 func TestRecovererRepanicsOnAbortHandler(t *testing.T) {
-	router := NewRouter(testLogger(), stubPinger{})
+	router := newHealthRouter(t, stubPinger{})
 	router.Get("/abort", func(http.ResponseWriter, *http.Request) {
 		panic(http.ErrAbortHandler)
 	})
