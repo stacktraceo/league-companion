@@ -4,10 +4,10 @@ Go-бэкенд личного трекера статистики League of Leg
 складывает в PostgreSQL и отдаёт Android-клиенту. Техзадание — в `../SPEC.md`,
 состояние работ — в `../PROGRESS.md`.
 
-Статус: закрыты вехи «Дни 1–2» (скелет, конфиг, миграции, клиент к Riot API) и
-«Дни 3–4» (ограничитель частоты, ретраи, кэш). REST-хендлеров и sync worker'а ещё нет,
-поэтому лимитер и кэш пока подключены только в `cmd/riotcheck` — в сервис они
-придут вместе с хендлерами.
+Статус: закрыты вехи «Дни 1–2» (скелет, конфиг, миграции, клиент к Riot API),
+«Дни 3–4» (ограничитель частоты, ретраи, кэш) и «Дни 5–6» (репозитории, синхронизация,
+REST API). Периодического тикера ещё нет — матчи подтягиваются при добавлении
+саммонера; тикер и агрегация статистики придут в вехе «День 7».
 
 ## Требования
 
@@ -70,10 +70,130 @@ curl -i localhost:8080/healthz
 Если база недоступна — `503` и единый формат ошибки:
 `{"error":"database_unavailable","message":"база данных недоступна"}`.
 
+## REST API
+
+Все `/api/v1/*` требуют заголовок `X-API-Key` со значением `CLIENT_API_KEY`
+(CLAUDE.md, отклонение 3). `/healthz` — единственное исключение: его дёргают
+мониторинг и `docker-compose`, знать секрет им незачем.
+
+| Метод | Путь | Что делает |
+|---|---|---|
+| `POST` | `/api/v1/summoners` | Добавляет саммонера по Riot ID. `201` — добавлен впервые, `200` — уже отслеживался |
+| `GET` | `/api/v1/summoners/{puuid}` | Профиль и ранги по очередям |
+| `GET` | `/api/v1/summoners/{puuid}/matches?limit=20&offset=0` | Лента матчей глазами этого саммонера, `limit` 1..100 |
+| `GET` | `/api/v1/matches/{matchId}` | Полные детали матча: обе команды, все 10 участников |
+
+### Добавить саммонера
+
+`riotId` — игровое имя **без** тега, тег передаётся отдельно в `tagLine`;
+`region` — platform-регион (`ru`, `euw1`, `kr`, …), не regional-маршрут вроде `europe`.
+
+```bash
+curl -X POST localhost:8080/api/v1/summoners \
+  -H "X-API-Key: $CLIENT_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"riotId":"Hide on bush","tagLine":"KR1","region":"kr"}'
+```
+
+```json
+{
+  "puuid": "...",
+  "riotId": "Hide on bush",
+  "tagLine": "KR1",
+  "region": "kr",
+  "summonerLevel": 782,
+  "profileIconId": 6,
+  "lastSyncedAt": null,
+  "createdAt": "2026-07-29T10:00:00Z",
+  "ranked": [
+    {
+      "queueType": "RANKED_SOLO_5x5",
+      "tier": "CHALLENGER",
+      "rank": "I",
+      "leaguePoints": 1123,
+      "wins": 240,
+      "losses": 180,
+      "updatedAt": "2026-07-29T10:00:00Z"
+    }
+  ]
+}
+```
+
+Профиль и ранг тянутся синхронно — три запроса к Riot, около полутора секунд.
+Матчи (ещё два десятка запросов) уходят в фоновый runner: в логах видно
+`фоновая синхронизация завершена`, после чего `lastSyncedAt` перестаёт быть `null`.
+
+### Профиль и лента матчей
+
+Оба `GET`'а читают только Postgres и в Riot не ходят — иначе в 200 мс (SPEC.md 3.6)
+не уложиться. Свежесть обеспечивает фоновая синхронизация.
+
+```bash
+curl -H "X-API-Key: $CLIENT_API_KEY" localhost:8080/api/v1/summoners/$PUUID
+curl -H "X-API-Key: $CLIENT_API_KEY" \
+  "localhost:8080/api/v1/summoners/$PUUID/matches?limit=5&offset=0"
+```
+
+```json
+{
+  "items": [
+    {
+      "matchId": "KR_7000000001",
+      "gameCreation": "2026-07-28T21:14:00Z",
+      "gameDurationSeconds": 1500,
+      "queueId": 420,
+      "gameVersion": "14.1.556.1234",
+      "championName": "Ahri",
+      "kills": 11, "deaths": 3, "assists": 9,
+      "kda": 6.666666666666667,
+      "win": true,
+      "cs": 201,
+      "goldEarned": 14320
+    }
+  ],
+  "limit": 5,
+  "offset": 0,
+  "total": 20
+}
+```
+
+`total` — сколько матчей сохранено всего, а не размер страницы: по нему клиент
+рисует пагинацию.
+
+### Детали матча
+
+Отдаётся исходный ответ Match-V5 из `matches.raw_data` как есть (CLAUDE.md,
+отклонение 1): там уже лежат предметы, руны и спеллы, а `match_participants`
+хранит строки только для отслеживаемых саммонеров.
+
+```bash
+curl -H "X-API-Key: $CLIENT_API_KEY" localhost:8080/api/v1/matches/KR_7000000001
+```
+
+### Ошибки
+
+Единый формат `{"error", "message"}`, где `error` — машинный код:
+
+| Код HTTP | `error` | Когда |
+|---|---|---|
+| `400` | `invalid_body` | Тело не разбирается или содержит лишние поля |
+| `400` | `invalid_request` | Пустой `riotId`/`tagLine`/`region`, тег внутри `riotId`, неизвестный регион |
+| `400` | `invalid_pagination` | `limit` вне `1..100`, отрицательный `offset`, не число |
+| `400` | `invalid_region` | Регион не прошёл маппинг уже в клиенте Riot |
+| `401` | `unauthorized` | Нет или неверный `X-API-Key` |
+| `404` | `summoner_not_found` | Riot не знает такой Riot ID либо саммонер не отслеживается |
+| `404` | `match_not_found` | Матча нет в базе — появится после синхронизации |
+| `429` | `rate_limited` | Упёрлись в лимит Riot; в `Retry-After` — срок, названный Riot |
+| `502` | `riot_unauthorized` | Riot отклонил **наш** ключ (скорее всего протух) — это не про клиента, поэтому не `401` |
+| `502` | `riot_unavailable` | Riot ответил `5xx` или неожиданным статусом |
+| `504` | `riot_timeout` | Riot не ответил вовремя |
+| `500` | `internal_error` | Ошибка базы; детали уходят только в лог |
+
 ## Ручная проверка Riot API
 
-REST-хендлеров ещё нет, поэтому клиент к Riot проверяется отдельной утилитой —
-она прогоняет все пять эндпоинтов из SPEC.md 3.2 и печатает результат:
+Клиент к Riot можно прогнать отдельно от сервиса — утилита обходит все пять
+эндпоинтов из SPEC.md 3.2 и печатает результат. Удобно, чтобы отличить протухший
+ключ от ошибки в коде:
 
 ```bash
 go run ./cmd/riotcheck -region ru -riot-id "GameName#TAG"
@@ -109,16 +229,40 @@ go run ./cmd/riotcheck -region ru -riot-id "GameName#TAG" -redis none   # без
 ## Структура
 
 ```
-cmd/server      точка входа сервиса: конфиг → миграции → пул БД → HTTP
+cmd/server      точка входа: конфиг → миграции → пул БД → клиент Riot → фоновый runner → HTTP
 cmd/riotcheck   CLI ручной проверки Riot API
 internal/config     разбор и валидация переменных окружения
 internal/riot       клиент Riot API: routing, DTO, типизированные ошибки, кэш и ретраи
 internal/ratelimit  ограничитель частоты запросов к Riot
 internal/cache      кэш ответов Riot: Redis и in-memory
 internal/domain     доменные модели и мапперы из DTO
-internal/storage    пул pgx и вшитые миграции
-internal/httpapi    роутер, middleware, health-check
+internal/storage    пул pgx, вшитые миграции, репозитории
+internal/syncer     синхронизация Riot → Postgres и фоновый исполнитель
+internal/httpapi    роутер, middleware, auth, хендлеры и DTO ответов
 ```
+
+Зависимость строго в одну сторону: `httpapi` знает про `syncer` и `storage`,
+но не про `riot`; форма ответов Riot дальше пакета `riot` не протекает.
+JSON-теги живут в `httpapi/dto.go`, а не на доменных структурах — формат API
+не должен диктоваться формой таблиц.
+
+### Синхронизация
+
+`syncer.Service` синхронизирует одного саммонера и ничего не знает про HTTP —
+его дёргают и хендлер добавления, и фоновый исполнитель:
+
+- match id, уже лежащие в базе, отфильтровываются до похода в Riot: детали матча
+  весят под 140 КБ, повторно тянуть их незачем;
+- участники матча пишутся только для отслеживаемых саммонеров — на
+  `match_participants` стоит FK на `summoners`;
+- несохранившийся матч логируется и не роняет остальной прогон; протухший ключ
+  и отменённый контекст прерывают прогон сразу, потому что продолжать бессмысленно.
+
+`syncer.Runner` — очередь фиксированного размера (64) и три воркера. `Enqueue`
+никогда не блокирует вызывающего: переполненная очередь означает WARN и отброшенную
+задачу, а не ожидание в HTTP-хендлере. При остановке сначала закрывается HTTP
+(чтобы не появлялись новые задачи), затем дожидаются активные синхронизации —
+и только потом закрывается пул БД.
 
 ### Лимиты Riot, ретраи и кэш
 
@@ -192,3 +336,18 @@ TDD обязателен для region routing, rate limiter и агрегаци
 
 Тесты не требуют ни Postgres, ни Redis: кэш проверяется на `miniredis`, а лимитер
 и backoff — на подменённых часах, поэтому двухминутное окно Riot проверяется мгновенно.
+Хендлеры тестируются на фейковых репозиториях, поэтому `go test ./...` зелёный
+без всякой инфраструктуры.
+
+Исключение — тесты репозиториев: им нужен живой Postgres, поэтому они смотрят
+на `TEST_DATABASE_URL` и без него пропускаются.
+
+```bash
+docker run --rm -d --name lc-test-pg -p 55432:5432 \
+  -e POSTGRES_USER=league -e POSTGRES_PASSWORD=league -e POSTGRES_DB=league_test postgres:16
+
+TEST_DATABASE_URL='postgres://league:league@localhost:55432/league_test?sslmode=disable' \
+  go test ./internal/storage/ -v
+```
+
+Миграции они применяют сами и убирают за собой данные между тестами.
