@@ -128,12 +128,19 @@ func (s *Service) syncRanks(ctx context.Context, summoner domain.Summoner) {
 	}
 }
 
-// SyncSummoner подтягивает новые матчи саммонера по его puuid.
+// SyncSummoner подтягивает новые матчи саммонера и обновляет его ранговый снапшот.
+//
+// Ранги здесь обязательны: это единственный путь, которым ходит фон (SPEC.md 3.5,
+// пункт 4). Без них LP и тир замерли бы на значениях момента добавления, потому что
+// League-V4 дёргается ещё только в SyncProfile. Лишним запросом это почти не выходит:
+// ответ League-V4 кэшируется на 5 минут.
 func (s *Service) SyncSummoner(ctx context.Context, puuid string, count int) (int, error) {
 	summoner, err := s.summoners.ByPUUID(ctx, puuid)
 	if err != nil {
 		return 0, err
 	}
+
+	s.syncRanks(ctx, summoner)
 
 	return s.SyncMatches(ctx, summoner, count)
 }

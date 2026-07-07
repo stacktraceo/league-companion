@@ -327,6 +327,46 @@ func TestSyncProfilePropagatesRiotErrors(t *testing.T) {
 	})
 }
 
+// Фон ходит только через SyncSummoner, поэтому ранги обязан обновлять он: иначе LP
+// и тир замирают на значениях момента добавления (SPEC.md 3.5, пункт 4).
+func TestSyncSummonerRefreshesRanks(t *testing.T) {
+	client := &fakeRiot{
+		matchIDs: []string{"EUW1_1"},
+		matches:  map[string]riot.MatchDetail{"EUW1_1": matchDetail("EUW1_1", "puuid-1")},
+		entries: []riot.LeagueEntryDTO{
+			{QueueType: "RANKED_SOLO_5x5", Tier: "PLATINUM", Rank: "IV", LeaguePoints: 12},
+		},
+	}
+
+	repos := newFakeRepos()
+	repos.summoners["puuid-1"] = domain.Summoner{PUUID: "puuid-1", Region: testRegion}
+	repos.ranked["puuid-1"] = []domain.RankedStat{{QueueType: "RANKED_SOLO_5x5", Tier: "GOLD"}}
+
+	_, err := newTestService(client, repos).SyncSummoner(context.Background(), "puuid-1", 10)
+	require.NoError(t, err)
+
+	require.Len(t, repos.ranked["puuid-1"], 1)
+	assert.Equal(t, "PLATINUM", repos.ranked["puuid-1"][0].Tier, "снапшот перезаписан свежим")
+	assert.Equal(t, testNow, repos.ranked["puuid-1"][0].UpdatedAt)
+}
+
+// Недоступный League-V4 не должен мешать догрузке матчей: ранг подтянется следующим
+// прогоном, а матчи важнее.
+func TestSyncSummonerSurvivesLeagueFailure(t *testing.T) {
+	client := &fakeRiot{
+		matchIDs:  []string{"EUW1_1"},
+		matches:   map[string]riot.MatchDetail{"EUW1_1": matchDetail("EUW1_1", "puuid-1")},
+		leagueErr: errors.New("league-v4 недоступен"),
+	}
+
+	repos := newFakeRepos()
+	repos.summoners["puuid-1"] = domain.Summoner{PUUID: "puuid-1", Region: testRegion}
+
+	synced, err := newTestService(client, repos).SyncSummoner(context.Background(), "puuid-1", 10)
+	require.NoError(t, err)
+	assert.Equal(t, 1, synced)
+}
+
 func TestSyncMatchesSkipsAlreadyStored(t *testing.T) {
 	client := &fakeRiot{
 		matchIDs: []string{"EUW1_1", "EUW1_2", "EUW1_3"},
