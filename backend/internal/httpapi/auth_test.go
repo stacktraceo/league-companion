@@ -24,6 +24,7 @@ func protectedRoutes() []struct {
 		{http.MethodPost, "/api/v1/summoners"},
 		{http.MethodGet, "/api/v1/summoners/" + testPUUID},
 		{http.MethodGet, "/api/v1/summoners/" + testPUUID + "/matches"},
+		{http.MethodGet, "/api/v1/summoners/" + testPUUID + "/stats"},
 		{http.MethodGet, "/api/v1/matches/EUW1_1"},
 	}
 }

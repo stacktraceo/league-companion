@@ -168,6 +168,54 @@ func (r *Matches) ListByPUUID(ctx context.Context, puuid string, limit, offset i
 	return items, nil
 }
 
+// ParticipationsSince отдаёт участия саммонера в матчах, начиная с since —
+// вход для агрегации статистики (SPEC.md 3.4).
+//
+// Возвращается доменный тип, а не read-model MatchListItem: агрегация живёт
+// в domain и не должна знать про storage. Пагинации здесь нет намеренно —
+// считать винрейт по части периода бессмысленно.
+func (r *Matches) ParticipationsSince(
+	ctx context.Context,
+	puuid string,
+	since time.Time,
+) ([]domain.MatchParticipant, error) {
+	const query = `
+		SELECT p.match_id, p.puuid, p.champion_name, p.kills, p.deaths, p.assists,
+		       p.win, p.cs, p.gold_earned
+		FROM match_participants p
+		JOIN matches m ON m.match_id = p.match_id
+		WHERE p.puuid = $1 AND m.game_creation >= $2
+		ORDER BY m.game_creation DESC`
+
+	rows, err := r.pool.Query(ctx, query, puuid, since)
+	if err != nil {
+		return nil, fmt.Errorf("storage: чтение участий за период: %w", err)
+	}
+	defer rows.Close()
+
+	var participations []domain.MatchParticipant
+
+	for rows.Next() {
+		var p domain.MatchParticipant
+
+		err := rows.Scan(
+			&p.MatchID, &p.PUUID, &p.ChampionName, &p.Kills, &p.Deaths, &p.Assists,
+			&p.Win, &p.CS, &p.GoldEarned,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("storage: разбор участия: %w", err)
+		}
+
+		participations = append(participations, p)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("storage: чтение участий за период: %w", err)
+	}
+
+	return participations, nil
+}
+
 // CountByPUUID — сколько всего матчей сохранено у саммонера. Нужно клиенту,
 // чтобы понимать границы пагинации.
 func (r *Matches) CountByPUUID(ctx context.Context, puuid string) (int, error) {

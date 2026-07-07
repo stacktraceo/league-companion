@@ -71,6 +71,69 @@ type MatchListItemResponse struct {
 	GoldEarned   int     `json:"goldEarned"`
 }
 
+// StatsResponse — агрегация за период (SPEC.md 3.4).
+type StatsResponse struct {
+	// PeriodDays и Since эхом возвращают, за что именно посчитано: клиент просит
+	// «30d», а границу окна считает сервер.
+	PeriodDays int       `json:"periodDays"`
+	Since      time.Time `json:"since"`
+
+	Games  int `json:"games"`
+	Wins   int `json:"wins"`
+	Losses int `json:"losses"`
+
+	// WinRate — доля побед, 0..1. Проценты форматирует клиент.
+	WinRate float64 `json:"winRate"`
+
+	Kills   int `json:"kills"`
+	Deaths  int `json:"deaths"`
+	Assists int `json:"assists"`
+
+	// KDA — агрегатный (ΣK+ΣA)/ΣD за период, а не среднее по матчам.
+	KDA float64 `json:"kda"`
+
+	TopChampions []ChampionStatsResponse `json:"topChampions"`
+}
+
+// ChampionStatsResponse — тот же срез по одному чемпиону.
+type ChampionStatsResponse struct {
+	ChampionName string  `json:"championName"`
+	Games        int     `json:"games"`
+	Wins         int     `json:"wins"`
+	WinRate      float64 `json:"winRate"`
+	KDA          float64 `json:"kda"`
+}
+
+func statsResponse(participations []domain.MatchParticipant, periodDays int, since time.Time) StatsResponse {
+	stats := domain.AggregateStats(participations, topChampionCount)
+
+	response := StatsResponse{
+		PeriodDays:   periodDays,
+		Since:        since,
+		Games:        stats.Games,
+		Wins:         stats.Wins,
+		Losses:       stats.Losses,
+		WinRate:      stats.WinRate,
+		Kills:        stats.Kills,
+		Deaths:       stats.Deaths,
+		Assists:      stats.Assists,
+		KDA:          stats.KDA,
+		TopChampions: make([]ChampionStatsResponse, 0, len(stats.TopChampions)),
+	}
+
+	for _, champion := range stats.TopChampions {
+		response.TopChampions = append(response.TopChampions, ChampionStatsResponse{
+			ChampionName: champion.ChampionName,
+			Games:        champion.Games,
+			Wins:         champion.Wins,
+			WinRate:      champion.WinRate,
+			KDA:          champion.KDA,
+		})
+	}
+
+	return response
+}
+
 func summonerResponse(summoner domain.Summoner, ranked []domain.RankedStat, stale bool) SummonerResponse {
 	response := SummonerResponse{
 		PUUID:         summoner.PUUID,

@@ -26,7 +26,12 @@ const (
 	testPUUID  = "puuid-1"
 )
 
-var testCreatedAt = time.Date(2026, 7, 29, 10, 0, 0, 0, time.UTC)
+var (
+	testCreatedAt = time.Date(2026, 7, 29, 10, 0, 0, 0, time.UTC)
+
+	// testNow — подменённые «сейчас» для границы периода в /stats и cooldown /sync.
+	testNow = time.Date(2026, 7, 29, 12, 0, 0, 0, time.UTC)
+)
 
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(io.Discard, nil))
@@ -125,11 +130,31 @@ func (f *fakeRanked) ByPUUID(_ context.Context, puuid string) ([]domain.RankedSt
 type fakeMatches struct {
 	items map[string][]storage.MatchListItem
 	raw   map[string]json.RawMessage
-	err   error
+
+	// participations — вход агрегации; отдельно от items, потому что тесты
+	// статистики задают K/D/A, а не строки ленты.
+	participations map[string][]domain.MatchParticipant
+
+	err error
 
 	limit     int
 	offset    int
 	listCalls int
+	since     time.Time
+}
+
+func (f *fakeMatches) ParticipationsSince(
+	_ context.Context,
+	puuid string,
+	since time.Time,
+) ([]domain.MatchParticipant, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+
+	f.since = since
+
+	return f.participations[puuid], nil
 }
 
 func (f *fakeMatches) ListByPUUID(
@@ -203,6 +228,14 @@ func testMatchItem(matchID string, creation time.Time) storage.MatchListItem {
 	}
 }
 
+func newFakeMatches() *fakeMatches {
+	return &fakeMatches{
+		items:          map[string][]storage.MatchListItem{},
+		raw:            map[string]json.RawMessage{},
+		participations: map[string][]domain.MatchParticipant{},
+	}
+}
+
 // matchItems собирает n матчей, от свежего к старому — в том же порядке,
 // в каком их отдаёт ListByPUUID.
 func matchItems(n int) []storage.MatchListItem {
@@ -226,7 +259,8 @@ func testDeps() Deps {
 		Queue:        &fakeQueue{},
 		Summoners:    &fakeSummoners{items: map[string]domain.Summoner{testPUUID: testSummoner()}},
 		Ranked:       &fakeRanked{items: map[string][]domain.RankedStat{}},
-		Matches:      &fakeMatches{items: map[string][]storage.MatchListItem{}, raw: map[string]json.RawMessage{}},
+		Matches:      newFakeMatches(),
+		Now:          func() time.Time { return testNow },
 	}
 }
 

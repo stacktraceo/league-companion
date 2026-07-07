@@ -331,3 +331,60 @@ func TestDeletingSummonerCascadesToParticipation(t *testing.T) {
 	assert.Equal(t, 0, countRows(t, pool, "match_participants"))
 	assert.Equal(t, 1, countRows(t, pool, "matches"))
 }
+
+// ParticipationsSince отбирает по времени матча, а не по времени вставки: агрегация
+// за 30 дней не должна захватывать матч годичной давности, догруженный сегодня.
+func TestParticipationsSinceFiltersByGameCreation(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	mustUpsert(t, ctx, NewSummoners(pool), testSummoner("puuid-1"))
+	mustUpsert(t, ctx, NewSummoners(pool), testSummoner("puuid-2"))
+
+	repo := NewMatches(pool)
+	now := time.Now().UTC()
+
+	// Внутри окна, на границе и снаружи.
+	for id, creation := range map[string]time.Time{
+		"EUW1_fresh":  now.Add(-time.Hour),
+		"EUW1_edge":   now.AddDate(0, 0, -30).Add(time.Minute),
+		"EUW1_stale":  now.AddDate(0, 0, -31),
+		"EUW1_others": now.Add(-2 * time.Hour),
+	} {
+		puuid := "puuid-1"
+		if id == "EUW1_others" {
+			puuid = "puuid-2"
+		}
+
+		require.NoError(t, repo.Insert(ctx, testMatch(id, creation),
+			[]domain.MatchParticipant{testParticipant(id, puuid)}))
+	}
+
+	since := now.AddDate(0, 0, -30)
+
+	participations, err := repo.ParticipationsSince(ctx, "puuid-1", since)
+	require.NoError(t, err)
+
+	ids := make([]string, 0, len(participations))
+	for _, p := range participations {
+		ids = append(ids, p.MatchID)
+	}
+
+	// Свежие первыми, чужое участие не попало, матч за границей окна отброшен.
+	assert.Equal(t, []string{"EUW1_fresh", "EUW1_edge"}, ids)
+
+	require.NotEmpty(t, participations)
+	assert.Equal(t, 11, participations[0].Kills, "поля участия доезжают целиком")
+	assert.Equal(t, "Ahri", participations[0].ChampionName)
+}
+
+// Саммонер без матчей за период — пустой результат, а не ошибка.
+func TestParticipationsSinceWithoutMatches(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	mustUpsert(t, ctx, NewSummoners(pool), testSummoner("puuid-1"))
+
+	participations, err := NewMatches(pool).ParticipationsSince(
+		ctx, "puuid-1", time.Now().UTC().AddDate(0, 0, -30))
+	require.NoError(t, err)
+	assert.Empty(t, participations)
+}

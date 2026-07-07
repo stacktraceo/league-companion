@@ -33,6 +33,10 @@ type Deps struct {
 	Summoners SummonerStore
 	Ranked    RankedStore
 	Matches   MatchStore
+
+	// Now подменяется в тестах: от настенных часов зависят и граница периода
+	// в /stats, и cooldown принудительной синхронизации. Пустое значение — time.Now.
+	Now func() time.Time
 }
 
 // NewRouter собирает роутер бэкенда.
@@ -41,6 +45,11 @@ type Deps struct {
 // /api/v1/* (CLAUDE.md, отклонение 3), иначе мониторингу и docker-compose
 // пришлось бы знать секрет.
 func NewRouter(deps Deps) *chi.Mux {
+	now := deps.Now
+	if now == nil {
+		now = time.Now
+	}
+
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
@@ -55,6 +64,7 @@ func NewRouter(deps Deps) *chi.Mux {
 		api.Post("/summoners", createSummoner(deps.Logger, deps.Profiles, deps.Queue, deps.Ranked))
 		api.Get("/summoners/{puuid}", getSummoner(deps.Logger, deps.Summoners, deps.Ranked))
 		api.Get("/summoners/{puuid}/matches", listMatches(deps.Logger, deps.Summoners, deps.Matches))
+		api.Get("/summoners/{puuid}/stats", getStats(deps.Logger, deps.Summoners, deps.Matches, now))
 		api.Get("/matches/{matchId}", getMatch(deps.Logger, deps.Matches))
 	})
 

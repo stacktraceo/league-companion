@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -51,6 +52,7 @@ type MatchStore interface {
 	ListByPUUID(ctx context.Context, puuid string, limit, offset int) ([]storage.MatchListItem, error)
 	CountByPUUID(ctx context.Context, puuid string) (int, error)
 	RawByID(ctx context.Context, matchID string) (json.RawMessage, error)
+	ParticipationsSince(ctx context.Context, puuid string, since time.Time) ([]domain.MatchParticipant, error)
 }
 
 // createSummoner добавляет саммонера по Riot ID.
