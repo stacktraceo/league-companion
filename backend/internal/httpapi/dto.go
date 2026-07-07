@@ -71,6 +71,25 @@ type MatchListItemResponse struct {
 	GoldEarned   int     `json:"goldEarned"`
 }
 
+// SyncAcceptedResponse — ответ на принудительную синхронизацию: она уходит в фон,
+// поэтому отдавать нечего, кроме подтверждения и прошлой отметки.
+type SyncAcceptedResponse struct {
+	Status string `json:"status"`
+	PUUID  string `json:"puuid"`
+
+	// LastSyncedAt — отметка до этого прогона. Клиент поймёт, что прогон дошёл,
+	// когда она сдвинется.
+	LastSyncedAt *time.Time `json:"lastSyncedAt"`
+}
+
+func syncAcceptedResponse(puuid string, lastSyncedAt *time.Time) SyncAcceptedResponse {
+	return SyncAcceptedResponse{
+		Status:       "queued",
+		PUUID:        puuid,
+		LastSyncedAt: lastSyncedAt,
+	}
+}
+
 // StatsResponse — агрегация за период (SPEC.md 3.4).
 type StatsResponse struct {
 	// PeriodDays и Since эхом возвращают, за что именно посчитано: клиент просит

@@ -65,6 +65,7 @@ func NewRouter(deps Deps) *chi.Mux {
 		api.Get("/summoners/{puuid}", getSummoner(deps.Logger, deps.Summoners, deps.Ranked))
 		api.Get("/summoners/{puuid}/matches", listMatches(deps.Logger, deps.Summoners, deps.Matches))
 		api.Get("/summoners/{puuid}/stats", getStats(deps.Logger, deps.Summoners, deps.Matches, now))
+		api.Post("/summoners/{puuid}/sync", forceSync(deps.Logger, deps.Summoners, deps.Queue, now))
 		api.Get("/matches/{matchId}", getMatch(deps.Logger, deps.Matches))
 	})
 
