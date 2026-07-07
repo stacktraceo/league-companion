@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -287,4 +288,73 @@ func TestJobErrorDoesNotStopRunner(t *testing.T) {
 	waitFor(t, 2*time.Second, "обе задачи обработаны несмотря на ошибки", func() bool {
 		return len(service.Seen()) == 2
 	})
+}
+
+// done из Submit — то, чем тикер узнаёт о завершении пачки.
+func TestSubmitCallsDoneAfterJob(t *testing.T) {
+	service := &fakeSyncer{}
+	runner := newTestRunner(t, service, 2, 8)
+
+	finished := make(chan string, 3)
+
+	for _, puuid := range []string{"puuid-1", "puuid-2", "puuid-3"} {
+		require.True(t, runner.Submit(puuid, 10, func() { finished <- puuid }))
+	}
+
+	seen := make([]string, 0, 3)
+	for range 3 {
+		select {
+		case puuid := <-finished:
+			seen = append(seen, puuid)
+		case <-time.After(2 * time.Second):
+			t.Fatalf("done вызван не для всех задач, получено: %v", seen)
+		}
+	}
+
+	assert.ElementsMatch(t, []string{"puuid-1", "puuid-2", "puuid-3"}, seen)
+}
+
+// Паника в задаче не должна съедать done: иначе guard тикера остался бы занятым
+// навсегда и периодическая синхронизация встала бы совсем.
+func TestSubmitCallsDoneAfterPanic(t *testing.T) {
+	runner := newTestRunner(t, &fakeSyncer{panics: true}, 1, 4)
+
+	done := make(chan struct{})
+	require.True(t, runner.Submit("puuid-1", 10, func() { close(done) }))
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("done не вызван после паники в задаче")
+	}
+}
+
+// Ошибка синхронизации — тоже завершение: done обязан сработать.
+func TestSubmitCallsDoneAfterError(t *testing.T) {
+	runner := newTestRunner(t, &fakeSyncer{err: errors.New("Riot прилёг")}, 1, 4)
+
+	done := make(chan struct{})
+	require.True(t, runner.Submit("puuid-1", 10, func() { close(done) }))
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("done не вызван после ошибки в задаче")
+	}
+}
+
+// Отброшенная задача возвращает false и намеренно не зовёт done — счётчик ожидания
+// снимает вызывающий, иначе он разошёлся бы с реальностью.
+func TestSubmitDoesNotCallDoneWhenRejected(t *testing.T) {
+	runner := NewRunner(&fakeSyncer{}, 1, 1, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	require.NoError(t, runner.Shutdown(ctx))
+
+	var called int32
+
+	assert.False(t, runner.Submit("puuid-1", 10, func() { atomic.AddInt32(&called, 1) }),
+		"после остановки задачи не принимаются")
+	assert.Zero(t, atomic.LoadInt32(&called))
 }

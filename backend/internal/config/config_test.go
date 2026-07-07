@@ -29,7 +29,7 @@ func setRequired(t *testing.T) {
 // не протекало в тест.
 func clearOptional(t *testing.T) {
 	t.Helper()
-	for _, key := range []string{"REDIS_ADDR", "HTTP_PORT", "LOG_LEVEL", "RIOT_HTTP_TIMEOUT"} {
+	for _, key := range []string{"REDIS_ADDR", "HTTP_PORT", "LOG_LEVEL", "RIOT_HTTP_TIMEOUT", "SYNC_INTERVAL"} {
 		t.Setenv(key, "")
 	}
 }
@@ -48,6 +48,7 @@ func TestLoadDefaults(t *testing.T) {
 	assert.Equal(t, defaultHTTPPort, cfg.HTTPPort)
 	assert.Equal(t, slog.LevelInfo, cfg.LogLevel)
 	assert.Equal(t, defaultRiotHTTPTimeout, cfg.RiotHTTPTimeout)
+	assert.Equal(t, defaultSyncInterval, cfg.SyncInterval)
 	assert.Equal(t, ":8080", cfg.Addr())
 }
 
@@ -57,6 +58,7 @@ func TestLoadOverrides(t *testing.T) {
 	t.Setenv("HTTP_PORT", "9090")
 	t.Setenv("LOG_LEVEL", "DEBUG")
 	t.Setenv("RIOT_HTTP_TIMEOUT", "3s")
+	t.Setenv("SYNC_INTERVAL", "45s")
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -65,7 +67,20 @@ func TestLoadOverrides(t *testing.T) {
 	assert.Equal(t, 9090, cfg.HTTPPort)
 	assert.Equal(t, slog.LevelDebug, cfg.LogLevel)
 	assert.Equal(t, 3*time.Second, cfg.RiotHTTPTimeout)
+	assert.Equal(t, 45*time.Second, cfg.SyncInterval)
 	assert.Equal(t, ":9090", cfg.Addr())
+}
+
+// SYNC_INTERVAL=0 — валидное значение: так фоновая синхронизация выключается,
+// например чтобы не тратить лимит ключа на отладке.
+func TestLoadSyncIntervalZeroDisablesBackgroundSync(t *testing.T) {
+	setRequired(t)
+	clearOptional(t)
+	t.Setenv("SYNC_INTERVAL", "0")
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.Zero(t, cfg.SyncInterval)
 }
 
 func TestLoadReportsAllMissingRequiredAtOnce(t *testing.T) {
@@ -96,6 +111,8 @@ func TestLoadInvalidValues(t *testing.T) {
 		{"неизвестный уровень логов", "LOG_LEVEL", "verbose", "LOG_LEVEL"},
 		{"таймаут не длительность", "RIOT_HTTP_TIMEOUT", "10", "RIOT_HTTP_TIMEOUT"},
 		{"отрицательный таймаут", "RIOT_HTTP_TIMEOUT", "-5s", "RIOT_HTTP_TIMEOUT"},
+		{"интервал не длительность", "SYNC_INTERVAL", "10", "SYNC_INTERVAL"},
+		{"отрицательный интервал", "SYNC_INTERVAL", "-1m", "SYNC_INTERVAL"},
 	}
 
 	for _, tc := range cases {

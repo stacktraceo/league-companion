@@ -31,6 +31,10 @@ type Syncer interface {
 type job struct {
 	puuid string
 	count int
+
+	// done вызывается после завершения задачи — так тикер узнаёт, что его пачка
+	// доработана. У задач от HTTP-хендлеров nil: им ждать нечего.
+	done func()
 }
 
 // Runner выполняет синхронизации в фоне.
@@ -90,6 +94,15 @@ func (r *Runner) Start(base context.Context) {
 // переполнена, задача отбрасывается — саммонер уже сохранён, и его подберёт
 // следующий прогон.
 func (r *Runner) Enqueue(puuid string, count int) bool {
+	return r.Submit(puuid, count, nil)
+}
+
+// Submit — то же, что Enqueue, но с колбэком завершения. Нужен тикеру, который
+// дожидается своей пачки, прежде чем снять guard от наложения прогонов.
+//
+// Если задача не принята, done не вызывается — вызывающий обязан обработать это сам
+// по возвращённому false. Иначе счётчик ожидания разошёлся бы с реальностью.
+func (r *Runner) Submit(puuid string, count int, done func()) bool {
 	select {
 	case <-r.quit:
 		return false
@@ -97,7 +110,7 @@ func (r *Runner) Enqueue(puuid string, count int) bool {
 	}
 
 	select {
-	case r.jobs <- job{puuid: puuid, count: count}:
+	case r.jobs <- job{puuid: puuid, count: count, done: done}:
 		return true
 	default:
 		r.logger.Warn("очередь синхронизации переполнена, задача отброшена", "puuid", puuid)
@@ -162,6 +175,12 @@ func (r *Runner) worker(ctx context.Context) {
 }
 
 func (r *Runner) run(ctx context.Context, next job) {
+	// done обязан сработать при любом исходе, включая панику: иначе тикер навсегда
+	// останется в состоянии «прогон идёт» и больше не запустится.
+	if next.done != nil {
+		defer next.done()
+	}
+
 	// Паника в фоновой горутине роняет процесс целиком: Recoverer из httpapi
 	// сюда не достаёт.
 	defer func() {

@@ -21,6 +21,7 @@ const (
 	defaultHTTPPort        = 8080
 	defaultLogLevel        = "info"
 	defaultRiotHTTPTimeout = 10 * time.Second
+	defaultSyncInterval    = 10 * time.Minute
 )
 
 const redacted = "[REDACTED]"
@@ -47,6 +48,11 @@ type Config struct {
 	// ClientAPIKey — shared secret между Android-клиентом и бэкендом,
 	// проверяется middleware в заголовке X-API-Key (CLAUDE.md, отклонение 3).
 	ClientAPIKey string
+
+	// SyncInterval — как часто просыпается фоновая синхронизация (SPEC.md 3.5).
+	// Ноль выключает её совсем: удобно для локальной отладки, когда лимит ключа
+	// не хочется тратить на фон.
+	SyncInterval time.Duration
 
 	// LogLevel — минимальный уровень структурных логов.
 	LogLevel slog.Level
@@ -96,6 +102,12 @@ func Load() (*Config, error) {
 	}
 	cfg.RiotHTTPTimeout = timeout
 
+	interval, err := parseSyncInterval(envOrDefault("SYNC_INTERVAL", defaultSyncInterval.String()))
+	if err != nil {
+		errs = append(errs, err)
+	}
+	cfg.SyncInterval = interval
+
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("некорректная конфигурация: %w", errors.Join(errs...))
 	}
@@ -117,6 +129,7 @@ func (c *Config) LogValue() slog.Value {
 		slog.String("redis_addr", c.RedisAddr),
 		slog.Int("http_port", c.HTTPPort),
 		slog.String("client_api_key", maskSecret(c.ClientAPIKey)),
+		slog.Duration("sync_interval", c.SyncInterval),
 		slog.String("log_level", c.LogLevel.String()),
 	)
 }
@@ -168,6 +181,21 @@ func parseTimeout(raw string) (time.Duration, error) {
 	}
 
 	return timeout, nil
+}
+
+// parseSyncInterval разбирает интервал фоновой синхронизации. Ноль — валидное
+// значение и означает «не синхронизировать в фоне»; отрицательное — ошибка.
+func parseSyncInterval(raw string) (time.Duration, error) {
+	interval, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, fmt.Errorf("SYNC_INTERVAL: %q не длительность (например 10m, 0 — выключить)", raw)
+	}
+
+	if interval < 0 {
+		return 0, fmt.Errorf("SYNC_INTERVAL: %s не может быть отрицательным", interval)
+	}
+
+	return interval, nil
 }
 
 // maskSecret скрывает значение целиком, оставляя только признак «задано/не задано».

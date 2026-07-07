@@ -111,6 +111,17 @@ func run() error {
 	// воркеры не должны обращаться к уже закрытому пулу.
 	defer stopRunner(runner, logger)
 
+	// Тикер регистрируется последним и потому останавливается первым: иначе он
+	// продолжил бы подкидывать воркерам задачи, пока те уже останавливаются.
+	if cfg.SyncInterval > 0 {
+		ticker := syncer.NewTicker(summoners, runner, cfg.SyncInterval, logger)
+		ticker.Start(context.WithoutCancel(ctx))
+
+		defer ticker.Stop()
+	} else {
+		logger.Warn("SYNC_INTERVAL=0 — периодическая синхронизация выключена")
+	}
+
 	server := &http.Server{
 		Addr: cfg.Addr(),
 		Handler: httpapi.NewRouter(httpapi.Deps{
