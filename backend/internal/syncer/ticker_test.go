@@ -289,3 +289,80 @@ func TestTickerStopsOnContextCancel(t *testing.T) {
 		t.Fatal("цикл не вышел по отмене контекста")
 	}
 }
+
+// Прогон длиннее интервала не должен приводить к прогонам подряд.
+//
+// Регрессия, найденная живой проверкой: time.Ticker буферизует один тик, поэтому тик,
+// случившийся во время долгого прогона, дожидался его конца и немедленно запускал
+// второй прогон — то самое «встаёт в очередь», которого CLAUDE.md (отклонение 4)
+// велит не допускать.
+//
+// Различает случаи именно пауза между прогонами: со сбросом накопленного тика она
+// не меньше интервала, без сброса — около нуля. Число прогонов тут не показатель:
+// при интервале короче прогона оно в обоих случаях диктуется длиной прогона.
+func TestTickerDropsTickAccumulatedDuringRun(t *testing.T) {
+	const (
+		interval = 300 * time.Millisecond
+		jobTime  = 400 * time.Millisecond
+		observe  = 1600 * time.Millisecond
+	)
+
+	queue := &slowBatchQueue{delay: jobTime}
+	ticker := newTestTicker(&fakeTracked{puuids: []string{"puuid-1"}}, queue, interval)
+
+	ticker.Start(context.Background())
+	time.Sleep(observe)
+	ticker.Stop()
+
+	gaps := queue.Gaps()
+	require.NotEmpty(t, gaps, "за время наблюдения должно пройти минимум два прогона")
+
+	for i, gap := range gaps {
+		assert.Greater(t, gap, interval/2,
+			"пауза #%d между прогонами %s — накопленный тик не сброшен", i, gap)
+	}
+}
+
+// slowBatchQueue завершает задачу с задержкой — так прогон становится длиннее
+// интервала — и запоминает, когда каждый прогон начался и закончился.
+type slowBatchQueue struct {
+	delay time.Duration
+
+	mu      sync.Mutex
+	starts  []time.Time
+	finishs []time.Time
+}
+
+func (q *slowBatchQueue) Submit(_ string, _ int, done func()) bool {
+	q.mu.Lock()
+	q.starts = append(q.starts, time.Now())
+	q.mu.Unlock()
+
+	go func() {
+		time.Sleep(q.delay)
+
+		q.mu.Lock()
+		q.finishs = append(q.finishs, time.Now())
+		q.mu.Unlock()
+
+		if done != nil {
+			done()
+		}
+	}()
+
+	return true
+}
+
+// Gaps возвращает паузы между завершением одного прогона и началом следующего.
+func (q *slowBatchQueue) Gaps() []time.Duration {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	var gaps []time.Duration
+
+	for i := 1; i < len(q.starts) && i-1 < len(q.finishs); i++ {
+		gaps = append(gaps, q.starts[i].Sub(q.finishs[i-1]))
+	}
+
+	return gaps
+}

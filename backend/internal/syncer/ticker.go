@@ -33,8 +33,10 @@ type Ticker struct {
 	queue     BatchQueue
 	logger    *slog.Logger
 
-	// running — guard от наложения прогонов (CLAUDE.md, отклонение 4). Если
-	// предыдущий прогон ещё идёт, тик пропускается, а не встаёт в очередь.
+	// running — guard от наложения прогонов (CLAUDE.md, отклонение 4). Цикл вызывает
+	// runOnce последовательно, поэтому за пропуск тика во время долгого прогона
+	// отвечает dropPendingTick; этот флаг закрывает второй путь — вызов runOnce
+	// откуда-то ещё, помимо цикла.
 	running atomic.Bool
 
 	started  atomic.Bool
@@ -111,7 +113,25 @@ func (t *Ticker) loop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			t.runOnce(ctx)
+			t.dropPendingTick(ctx, ticker)
 		}
+	}
+}
+
+// dropPendingTick выбрасывает тик, случившийся за время прогона.
+//
+// Без этого guard от наложения не работал бы там, где он и нужен: time.Ticker
+// буферизует один тик, поэтому тик во время долгого прогона не пропадает, а
+// дожидается конца — и сразу запускает второй прогон подряд. Это то самое
+// «встаёт в очередь», которого CLAUDE.md (отклонение 4) велит не допускать;
+// atomic-guard в runOnce его не ловит, потому что цикл однопоточный и вызывает
+// runOnce строго последовательно.
+func (t *Ticker) dropPendingTick(ctx context.Context, ticker *time.Ticker) {
+	select {
+	case <-ticker.C:
+		t.logger.WarnContext(ctx, "предыдущий прогон синхронизации ещё шёл, тик пропущен",
+			"интервал", t.interval)
+	default:
 	}
 }
 
