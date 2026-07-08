@@ -40,6 +40,7 @@ func NewMemory() *Memory {
 	}
 }
 
+// Get возвращает значение и признак попадания. Протухшая запись считается промахом.
 func (m *Memory) Get(_ context.Context, key string) ([]byte, bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -54,6 +55,7 @@ func (m *Memory) Get(_ context.Context, key string) ([]byte, bool, error) {
 	return append([]byte(nil), item.value...), true, nil
 }
 
+// Set кладёт значение под ключ. Неположительный ttl — no-op, как и у Redis.
 func (m *Memory) Set(_ context.Context, key string, value []byte, ttl time.Duration) error {
 	if ttl <= 0 {
 		return nil
@@ -74,6 +76,7 @@ func (m *Memory) Set(_ context.Context, key string, value []byte, ttl time.Durat
 	return nil
 }
 
+// Close существует только ради общего с Redis интерфейса — закрывать тут нечего.
 func (m *Memory) Close() error { return nil }
 
 // sweep выбрасывает протухшие записи. Вызывается под уже взятым m.mu.

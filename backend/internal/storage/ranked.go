@@ -15,6 +15,7 @@ type RankedStats struct {
 	pool *pgxpool.Pool
 }
 
+// NewRankedStats создаёт репозиторий ранговых снапшотов поверх пула соединений.
 func NewRankedStats(pool *pgxpool.Pool) *RankedStats {
 	return &RankedStats{pool: pool}
 }

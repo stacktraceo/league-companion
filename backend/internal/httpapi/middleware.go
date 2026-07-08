@@ -26,6 +26,7 @@ func RequestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 			wrapped := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			started := time.Now()
 
+			//nolint:contextcheck // ложное срабатывание: r.Context() передаётся в LogAttrs, но contextcheck не видит его сквозь отложенное замыкание
 			defer func() {
 				logger.LogAttrs(r.Context(), slog.LevelInfo, "http request",
 					slog.String("request_id", requestID),
@@ -49,6 +50,7 @@ func RequestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 func Recoverer(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			//nolint:contextcheck // ложное срабатывание: r.Context() передаётся в LogAttrs ниже
 			defer func() {
 				recovered := recover()
 				if recovered == nil {

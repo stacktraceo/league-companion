@@ -38,6 +38,7 @@ type Matches struct {
 	pool *pgxpool.Pool
 }
 
+// NewMatches создаёт репозиторий матчей поверх пула соединений.
 func NewMatches(pool *pgxpool.Pool) *Matches {
 	return &Matches{pool: pool}
 }

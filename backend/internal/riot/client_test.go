@@ -53,7 +53,9 @@ func jsonHandler(t *testing.T, body string, captured **http.Request) http.Handle
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if captured != nil {
-			clone := r.Clone(context.Background())
+			// Именно Background, а не r.Context(): клон живёт дольше хендлера —
+			// тест разбирает его, когда контекст запроса уже отменён.
+			clone := r.Clone(context.Background()) //nolint:contextcheck // клон намеренно переживает запрос
 			*captured = clone
 		}
 

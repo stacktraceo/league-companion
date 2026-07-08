@@ -59,6 +59,7 @@ type Service struct {
 	now func() time.Time
 }
 
+// NewService собирает сервис синхронизации из клиента Riot и репозиториев.
 func NewService(
 	client RiotClient,
 	summoners SummonerRepo,

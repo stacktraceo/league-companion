@@ -152,6 +152,6 @@ func TestErrUnknownRegionWrapping(t *testing.T) {
 	_, err := MatchRoute("bogus")
 	require.Error(t, err)
 
-	var target error = ErrUnknownRegion
+	target := ErrUnknownRegion
 	assert.True(t, errors.Is(err, target))
 }

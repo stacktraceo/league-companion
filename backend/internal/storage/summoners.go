@@ -17,6 +17,7 @@ type Summoners struct {
 	pool *pgxpool.Pool
 }
 
+// NewSummoners создаёт репозиторий саммонеров поверх пула соединений.
 func NewSummoners(pool *pgxpool.Pool) *Summoners {
 	return &Summoners{pool: pool}
 }

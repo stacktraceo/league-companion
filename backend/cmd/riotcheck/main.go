@@ -40,10 +40,10 @@ const (
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "\nОШИБКА: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "\nОШИБКА: %v\n", err)
 
 		if errors.Is(err, riot.ErrUnauthorized) {
-			fmt.Fprintln(os.Stderr,
+			_, _ = fmt.Fprintln(os.Stderr,
 				"Похоже, RIOT_API_KEY протух — перевыпусти его на https://developer.riotgames.com "+
 					"и обнови .env (ключ действует 24 часа).")
 		}
@@ -112,15 +112,15 @@ func run() error {
 
 	out := os.Stdout
 
-	fmt.Fprintf(out, "Регион: %s\n", *region)
-	fmt.Fprintf(out, "Riot ID: %s#%s\n", gameName, tagLine)
-	fmt.Fprintf(out, "Кэш: %s\n", describeCache(responseCache))
+	_, _ = fmt.Fprintf(out, "Регион: %s\n", *region)
+	_, _ = fmt.Fprintf(out, "Riot ID: %s#%s\n", gameName, tagLine)
+	_, _ = fmt.Fprintf(out, "Кэш: %s\n", describeCache(responseCache))
 
 	for pass := 1; pass <= *repeat; pass++ {
 		if *repeat > 1 {
-			fmt.Fprintf(out, "\n=== проход %d из %d ===\n", pass, *repeat)
+			_, _ = fmt.Fprintf(out, "\n=== проход %d из %d ===\n", pass, *repeat)
 		} else {
-			fmt.Fprintln(out)
+			_, _ = fmt.Fprintln(out)
 		}
 
 		started := time.Now()
@@ -129,7 +129,7 @@ func run() error {
 			return err
 		}
 
-		fmt.Fprintf(out, "проход занял %s\n", time.Since(started).Round(time.Millisecond))
+		_, _ = fmt.Fprintf(out, "проход занял %s\n", time.Since(started).Round(time.Millisecond))
 	}
 
 	return nil
@@ -173,7 +173,7 @@ func check(
 		return fmt.Errorf("account-v1: %w", err)
 	}
 
-	fmt.Fprintf(out, "[1/5] account-v1     → puuid %s%s\n", account.PUUID, took(started))
+	_, _ = fmt.Fprintf(out, "[1/5] account-v1     → puuid %s%s\n", account.PUUID, took(started))
 
 	// 2. Summoner-V4 — platform routing.
 	started = time.Now()
@@ -183,7 +183,7 @@ func check(
 		return fmt.Errorf("summoner-v4: %w", err)
 	}
 
-	fmt.Fprintf(out, "[2/5] summoner-v4    → уровень %d, иконка %d%s\n",
+	_, _ = fmt.Fprintf(out, "[2/5] summoner-v4    → уровень %d, иконка %d%s\n",
 		summoner.SummonerLevel, summoner.ProfileIconID, took(started))
 
 	// 3. League-V4 — platform routing.
@@ -204,17 +204,17 @@ func check(
 		return fmt.Errorf("match-v5 (ids): %w", err)
 	}
 
-	fmt.Fprintf(out, "[4/5] match-v5 ids   → %d шт.%s\n", len(ids), took(started))
+	_, _ = fmt.Fprintf(out, "[4/5] match-v5 ids   → %d шт.%s\n", len(ids), took(started))
 
 	if detailed {
 		for _, id := range ids {
-			fmt.Fprintf(out, "                       %s\n", id)
+			_, _ = fmt.Fprintf(out, "                       %s\n", id)
 		}
 	}
 
 	if matchID == "" {
 		if len(ids) == 0 {
-			fmt.Fprintln(out, "[5/5] match-v5       → пропущено: матчей нет")
+			_, _ = fmt.Fprintln(out, "[5/5] match-v5       → пропущено: матчей нет")
 
 			return nil
 		}
@@ -240,15 +240,15 @@ func took(started time.Time) string {
 
 func printRanks(out io.Writer, entries []riot.LeagueEntryDTO, took string) {
 	if len(entries) == 0 {
-		fmt.Fprintf(out, "[3/5] league-v4      → без ранга%s\n", took)
+		_, _ = fmt.Fprintf(out, "[3/5] league-v4      → без ранга%s\n", took)
 
 		return
 	}
 
-	fmt.Fprintf(out, "[3/5] league-v4      → %d очередей%s\n", len(entries), took)
+	_, _ = fmt.Fprintf(out, "[3/5] league-v4      → %d очередей%s\n", len(entries), took)
 
 	for _, entry := range entries {
-		fmt.Fprintf(out, "                       %s: %s %s, %d LP (%dW/%dL)\n",
+		_, _ = fmt.Fprintf(out, "                       %s: %s %s, %d LP (%dW/%dL)\n",
 			entry.QueueType, entry.Tier, entry.Rank, entry.LeaguePoints, entry.Wins, entry.Losses)
 	}
 }
@@ -264,15 +264,15 @@ func printMatch(out io.Writer, detail *riot.MatchDetail, puuid, took string, det
 		return err
 	}
 
-	fmt.Fprintf(out, "[5/5] match-v5       → %s%s\n", match.MatchID, took)
+	_, _ = fmt.Fprintf(out, "[5/5] match-v5       → %s%s\n", match.MatchID, took)
 
 	if !detailed {
 		return nil
 	}
 
-	fmt.Fprintf(out, "                       начало %s, длительность %s, queue %d, патч %s\n",
+	_, _ = fmt.Fprintf(out, "                       начало %s, длительность %s, queue %d, патч %s\n",
 		match.GameCreation.Format(time.RFC3339), match.GameDuration, match.QueueID, match.GameVersion)
-	fmt.Fprintf(out, "                       сырой JSON: %d байт (пойдёт в matches.raw_data)\n",
+	_, _ = fmt.Fprintf(out, "                       сырой JSON: %d байт (пойдёт в matches.raw_data)\n",
 		len(match.RawData))
 
 	for _, p := range participants {
@@ -286,7 +286,7 @@ func printMatch(out io.Writer, detail *riot.MatchDetail, puuid, took string, det
 			result = "победа"
 		}
 
-		fmt.Fprintf(out, "                     %s %-14s %2d/%2d/%2d  KDA %.2f  CS %3d  золото %5d  %s\n",
+		_, _ = fmt.Fprintf(out, "                     %s %-14s %2d/%2d/%2d  KDA %.2f  CS %3d  золото %5d  %s\n",
 			marker, p.ChampionName, p.Kills, p.Deaths, p.Assists, p.KDA(), p.CS, p.GoldEarned, result)
 	}
 

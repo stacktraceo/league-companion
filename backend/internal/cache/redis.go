@@ -25,6 +25,7 @@ func NewRedis(client *redis.Client) *Redis {
 	return &Redis{client: client}
 }
 
+// Get возвращает значение и признак попадания. Отсутствие ключа — не ошибка.
 func (r *Redis) Get(ctx context.Context, key string) ([]byte, bool, error) {
 	value, err := r.client.Get(ctx, keyPrefix+key).Bytes()
 
@@ -38,6 +39,7 @@ func (r *Redis) Get(ctx context.Context, key string) ([]byte, bool, error) {
 	return value, true, nil
 }
 
+// Set кладёт значение под ключ с обязательным TTL.
 func (r *Redis) Set(ctx context.Context, key string, value []byte, ttl time.Duration) error {
 	// Без TTL ключи Riot оседали бы в Redis навсегда — сюда попадают только
 	// данные, которые обязаны протухать (SPEC.md 3.1).
@@ -52,6 +54,7 @@ func (r *Redis) Set(ctx context.Context, key string, value []byte, ttl time.Dura
 	return nil
 }
 
+// Close закрывает клиент Redis — владение им перешло к кэшу в NewRedis.
 func (r *Redis) Close() error {
 	return r.client.Close()
 }

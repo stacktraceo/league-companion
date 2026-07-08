@@ -328,9 +328,9 @@ func TestTickerDropsTickAccumulatedDuringRun(t *testing.T) {
 type slowBatchQueue struct {
 	delay time.Duration
 
-	mu      sync.Mutex
-	starts  []time.Time
-	finishs []time.Time
+	mu       sync.Mutex
+	starts   []time.Time
+	finishes []time.Time
 }
 
 func (q *slowBatchQueue) Submit(_ string, _ int, done func()) bool {
@@ -342,7 +342,7 @@ func (q *slowBatchQueue) Submit(_ string, _ int, done func()) bool {
 		time.Sleep(q.delay)
 
 		q.mu.Lock()
-		q.finishs = append(q.finishs, time.Now())
+		q.finishes = append(q.finishes, time.Now())
 		q.mu.Unlock()
 
 		if done != nil {
@@ -360,8 +360,8 @@ func (q *slowBatchQueue) Gaps() []time.Duration {
 
 	var gaps []time.Duration
 
-	for i := 1; i < len(q.starts) && i-1 < len(q.finishs); i++ {
-		gaps = append(gaps, q.starts[i].Sub(q.finishs[i-1]))
+	for i := 1; i < len(q.starts) && i-1 < len(q.finishes); i++ {
+		gaps = append(gaps, q.starts[i].Sub(q.finishes[i-1]))
 	}
 
 	return gaps
