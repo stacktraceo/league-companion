@@ -17,11 +17,12 @@ linters:
       rules:
         - name: exported
           disabled: false
-  exclusions:
-    rules:
-      - path: _test\.go$
-        linters:
-          - goconst
+    goconst:
+      # Таблицы регионов в routing_test.go перечисляют платформы построчно, а
+      # goconst считает вхождения по всему пакету — из-за тестов ключи map в
+      # routing.go выглядели как «повторяющиеся строки». Исключение по пути тут
+      # не помогает: оно прячет findings в тестах, но не убирает их из подсчёта.
+      ignore-tests: true
 
 formatters:
   enable:
