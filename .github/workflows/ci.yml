@@ -21,9 +21,9 @@ jobs:
     name: Линтеры
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -42,20 +42,29 @@ jobs:
       - name: go vet
         run: go vet ./...
 
-      # Именно v7: v6 рассчитан на golangci-lint v1 и передаёт ему флаги, которых
-      # в v2 больше нет (.golangci.yml здесь объявлен как version: "2").
-      - uses: golangci/golangci-lint-action@v7
+      # Две ловушки, обе поймались только здесь, в CI:
+      #
+      # 1. Версия action'а привязана к мажорной версии линтера: v6 рассчитан на
+      #    golangci-lint v1 и отказывается ставить v2 (.golangci.yml тут version: "2").
+      # 2. Релизный бинарь golangci-lint падает с «can't load config», если
+      #    собран Go старее, чем директива go в go.mod (у нас go 1.25.0).
+      #    v2.12.2 собран go1.26.2 — подходит; v2.1.6 собран go1.24 — нет.
+      #
+      # Вторую локально не воспроизвести через `go install`: он пересобирает
+      # линтер текущим Go, и несоответствия версий не возникает в принципе.
+      # При подъёме go в go.mod версию линтера нужно проверять заново.
+      - uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.1.6
+          version: v2.12.2
           working-directory: backend
 
   test:
     name: Тесты (-race)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -86,9 +95,9 @@ jobs:
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
