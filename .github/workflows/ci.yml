@@ -1,0 +1,99 @@
+# Гейт из CLAUDE.md, «Конвенции»: gofmt, go vet, golangci-lint, тесты.
+# До этого workflow он держался только на дисциплине — ничто его не енфорсило.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Отменяем предыдущий прогон той же ветки: смысла дожидаться устаревшего нет.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  lint:
+    name: Линтеры
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # gofmt -l печатает файлы, требующие форматирования, но всегда выходит с 0 —
+      # поэтому проверяем непустой вывод сами, иначе шаг был бы зелёным всегда.
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "Не отформатировано gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.1.6
+          working-directory: backend
+
+  test:
+    name: Тесты (-race)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # -race требует CGO и gcc; на Windows-машине разработки их нет, поэтому
+      # детектор гонок реально работает только здесь (SPEC.md 7, конкурентность).
+      - name: go test -race
+        run: go test -race ./...
+
+  integration:
+    name: Интеграционные тесты (Postgres)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: league
+          POSTGRES_PASSWORD: league
+          POSTGRES_DB: league_companion_test
+        ports:
+          - 5432:5432
+        # Без healthcheck шаги стартуют раньше, чем Postgres примет соединения.
+        options: >-
+          --health-cmd "pg_isready -U league -d league_companion_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # Без TEST_DATABASE_URL эти тесты скипаются — то есть локально они зелёные
+      # за счёт пропуска. Здесь они впервые выполняются по-настоящему.
+      - name: go test ./internal/storage/
+        run: go test -v ./internal/storage/
+        env:
+          TEST_DATABASE_URL: postgres://league:league@localhost:5432/league_companion_test?sslmode=disable
