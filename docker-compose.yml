@@ -1,0 +1,68 @@
+# Полный локальный стек: docker compose up -d --build
+#
+# Миграции применяет сам бэкенд при старте (internal/storage/migrate.go, //go:embed),
+# поэтому отдельного сервиса-мигратора здесь нет. golang-migrate берёт advisory-lock,
+# так что одновременный старт нескольких инстансов безопасен.
+
+name: league-companion
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: league
+      POSTGRES_PASSWORD: league
+      POSTGRES_DB: league_companion
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # -U и -d обязательны: без них pg_isready проверяет базу postgres, а не нашу,
+      # и сообщает «готов» раньше, чем league_companion действительно создана.
+      test: ["CMD-SHELL", "pg_isready -U league -d league_companion"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    # RIOT_API_KEY и CLIENT_API_KEY приходят из корневого .env — в git он не попадает.
+    # Файл обязателен: без ключей config.Load() откажется стартовать.
+    env_file:
+      - .env
+    environment:
+      # environment перекрывает env_file, поэтому localhost из .env заменяется на
+      # имена сервисов compose — держать отдельный .env для докера не нужно.
+      DATABASE_URL: postgres://league:league@postgres:5432/league_companion?sslmode=disable
+      REDIS_ADDR: redis:6379
+      HTTP_PORT: "8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # /healthz живёт вне /api/v1 и не требует X-API-Key (CLAUDE.md, отклонение 3).
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Первый старт дольше: применяются миграции.
+      start_period: 15s
+
+# Именованный том переживает `docker compose down`, но не `down -v`.
+volumes:
+  pgdata:
