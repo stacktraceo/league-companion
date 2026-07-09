@@ -1,6 +1,8 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+# Кэши, которые заводит Android Studio при открытии проекта
+/caches/
 # Editor-based HTTP Client requests
 /httpRequests/
 # Ignored default folder with query files

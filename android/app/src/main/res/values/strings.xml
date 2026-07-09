@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">League Companion</string>
+
+    <!-- Debug screen: временный, выбрасывается вместе с экранами вехи 11–12. -->
+    <string name="debug_title">Backend smoke test</string>
+    <string name="debug_game_name">Game name</string>
+    <string name="debug_tag_line">Tag line</string>
+    <string name="debug_region">Region</string>
+    <string name="debug_track">Track summoner</string>
+    <string name="debug_refresh">Refresh matches</string>
+    <string name="debug_no_summoner">No summoner tracked yet</string>
+    <string name="debug_no_matches">No matches yet — the backend syncs them in the background</string>
+    <string name="debug_never_synced">never synced</string>
+
+    <!-- Ошибки. Формулировки разные не для красоты: 401 значит, что приложение
+         настроено неверно, а 502 — что сервер не смог достучаться до Riot. -->
+    <string name="error_no_network">No connection to the backend. Is it running?</string>
+    <string name="error_unauthorized">Wrong API key. Check LC_API_KEY in local.properties.</string>
+    <string name="error_not_found">Summoner not found.</string>
+    <string name="error_rate_limited">Rate limited. Try again in %1$d s.</string>
+    <string name="error_riot_unavailable">The backend cannot reach Riot API. Its key may have expired.</string>
+    <string name="error_server">Backend error. Check its logs.</string>
+    <string name="error_unknown">Something went wrong.</string>
+</resources>
