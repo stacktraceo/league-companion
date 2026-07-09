@@ -52,10 +52,17 @@
 - [x] Сверх плана: CI на GitHub Actions — линтеры, `-race`, интеграционные тесты
 - [x] Сверх плана: первый в проекте прогон `golangci-lint`, 20 замечаний исправлено
 
-### Дни 9–10: скелет Android
-- [ ] Скелет проекта, Hilt, Retrofit-клиент (+ заголовок X-API-Key)
+### Дни 9–10: скелет Android — **в работе**
+- [x] Скелет проекта, Hilt, Retrofit-клиент (+ заголовок X-API-Key) — собирается,
+      `ktlintCheck` и 12 юнит-тестов зелёные
 - [ ] Room-сущности (SummonerEntity/MatchEntity/MatchParticipantEntity)
 - [ ] Repository (offline-first)
+- [ ] Временный debug-экран для живой проверки связки с бэкендом
+- [ ] CI-job для Android (не забыть переопределить глобальный
+      `defaults.run.working-directory: backend` из `ci.yml`)
+- [ ] README android
+
+Следующий шаг сессии: слой Room (сущности + DAO с JOIN под ленту матчей).
 
 ### Дни 11–12: Compose-экраны
 - [ ] Экран поиска
@@ -338,6 +345,7 @@ DoD-пункт выполнялся бы за счёт скипа. Postgres от
 будут проверяться в Linux/докере с вехи «День 8». `golangci-lint` не установлен, конфиг
 `backend/.golangci.yml` положен заранее; перед коммитами прогонялись `gofmt -l .`,
 `go vet ./...` и `go test ./...`.
+
 **2026-07-08 / День 8 — версия golangci-lint в CI выбирается по версии Go, которой собран релиз.**
 Линтер отказывается работать («can't load config: the Go language version (go1.24) used to
 build golangci-lint is lower than the targeted Go version (1.25.0)»), если собран Go старее,
@@ -351,3 +359,25 @@ action скачивает готовый бинарь. При подъёме `go
 обычном файле. Таблицы регионов в `routing_test.go` из-за этого делали ключи map в
 `routing.go` «повторяющимися строками» — семь замечаний на ровном месте. Исключение
 `path: _test\.go$` не помогало: оно прячет findings в тестах, но не убирает их из подсчёта.
+
+**2026-07-09 / Дни 9–10 — AGP 9 несёт Kotlin в себе, плагин `kotlin-android` применять нельзя.**
+Начиная с AGP 9.0 поддержка Kotlin встроена в сам плагин, и `org.jetbrains.kotlin.android`
+валит сборку явной ошибкой «no longer required». В `plugins {}` остались только отдельные
+compiler-плагины: `kotlin.plugin.compose`, `kotlin.plugin.serialization`, `ksp`, `hilt`.
+Связка AGP 9.3.1 + Gradle 9.6.1 + KSP 2.3.10 + Hilt 2.60.1 собирается и проходит тесты,
+поэтому запасной откат на AGP 8.13.2 не понадобился.
+
+**2026-07-09 / Дни 9–10 — `compileSdk 37` при `targetSdk 36`.**
+androidx образца 2026 года (core-ktx 1.19, lifecycle 2.11, hilt-navigation-compose 1.4)
+отказывается собираться против API 36: «requires libraries and applications that depend on
+it to compile against version 37 or later». `compileSdk` даёт доступ к API, `targetSdk`
+включает новое поведение рантайма — это независимые вещи, поднимать второй не требуется.
+Платформу android-37 AGP скачал сам: лицензия SDK уже принята.
+
+**2026-07-09 / Дни 9–10 — Gradle-тесты локально падают из-за битого системного PATH.**
+В `PATH` машины разработки есть запись `C:\Program Files\dotnet"` с висячей кавычкой.
+Gradle подставляет `PATH` в `-Djava.library.path` тест-воркера, кавычка рвёт разбор
+командной строки Windows, и процесс падает с `Could not find or load main class
+Files\Git\usr\bin\vendor_perl;C:\Program`. К проекту отношения не имеет: компиляция и
+`assembleDebug` проходят, падает только `testDebugUnitTest`. Обход — запускать Gradle
+через обёртку с `set "PATH=%PATH:"=%"`. В CI (Linux) проблемы нет.
