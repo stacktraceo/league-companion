@@ -108,3 +108,48 @@ jobs:
         run: go test -v ./internal/storage/
         env:
           TEST_DATABASE_URL: postgres://league:league@localhost:5432/league_companion_test?sslmode=disable
+
+  android:
+    name: Android (ktlint + тесты + lint)
+    runs-on: ubuntu-latest
+
+    # Обязательно: workflow объявляет working-directory: backend глобально, и без
+    # переопределения все шаги побежали бы в каталоге бэкенда.
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # JDK 21 — тот же, на котором собирает Android Studio (JBR). Байткод при этом
+      # всё равно 17: jvmTarget задан в app/build.gradle.kts.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Кэш Gradle и проверка контрольной суммы wrapper'а (validate-wrappers по
+      # умолчанию включена).
+      - uses: gradle/actions/setup-gradle@v6
+
+      # LC_BASE_URL и LC_API_KEY здесь не задаются: local.properties в репозитории
+      # нет, и сборка падает на дефолты из app/build.gradle.kts. Секреты в CI не
+      # нужны — ни один из этих шагов не ходит в сеть.
+      - name: ktlint
+        run: ./gradlew --no-daemon :app:ktlintCheck
+
+      - name: Юнит-тесты
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+
+      - name: Android Lint
+        run: ./gradlew --no-daemon :app:lintDebug
+
+      # Отчёты нужны ровно тогда, когда шаг красный и по логу непонятно, что упало.
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-reports
+          path: |
+            android/app/build/reports/
+            android/app/build/test-results/
