@@ -20,6 +20,23 @@
     <string name="error_not_found">Summoner not found.</string>
     <string name="error_rate_limited">Rate limited. Try again in %1$d s.</string>
     <string name="error_riot_unavailable">The backend cannot reach Riot API. Its key may have expired.</string>
-    <string name="error_server">Backend error. Check its logs.</string>
+    <string name="error_server">Backend error %1$d. Check its logs.</string>
     <string name="error_unknown">Something went wrong.</string>
+
+    <!-- «Сколько прошло» для карточки матча. Через plurals, а не конкатенацией:
+         в английском «1 minute» и «2 minutes» — разные формы, и склеенное
+         "$n minutes" врало бы на каждой первой минуте. -->
+    <string name="ago_just_now">just now</string>
+    <plurals name="ago_minutes">
+        <item quantity="one">%1$d minute ago</item>
+        <item quantity="other">%1$d minutes ago</item>
+    </plurals>
+    <plurals name="ago_hours">
+        <item quantity="one">%1$d hour ago</item>
+        <item quantity="other">%1$d hours ago</item>
+    </plurals>
+    <plurals name="ago_days">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
 </resources>
