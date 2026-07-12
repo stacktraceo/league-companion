@@ -2,16 +2,14 @@
 <resources>
     <string name="app_name">League Companion</string>
 
-    <!-- Debug screen: временный, выбрасывается вместе с экранами вехи 11–12. -->
-    <string name="debug_title">Backend smoke test</string>
-    <string name="debug_game_name">Game name</string>
-    <string name="debug_tag_line">Tag line</string>
-    <string name="debug_region">Region</string>
-    <string name="debug_track">Track summoner</string>
-    <string name="debug_refresh">Refresh matches</string>
-    <string name="debug_no_summoner">No summoner tracked yet</string>
-    <string name="debug_no_matches">No matches yet — the backend syncs them in the background</string>
-    <string name="debug_never_synced">never synced</string>
+    <!-- Экран поиска. Riot ID вводится целиком: ник копируют из клиента или из
+         чата вместе с тегом, и два поля заставляли бы разрезать его руками. -->
+    <string name="search_riot_id">Riot ID</string>
+    <string name="search_riot_id_hint">Faker#KR1</string>
+    <string name="search_action">Find</string>
+    <string name="search_bad_format">Enter the Riot ID as Name#TAG, for example Faker#KR1</string>
+    <string name="search_tracked">Tracked</string>
+    <string name="search_empty">Add a summoner to start tracking.</string>
 
     <!-- Ошибки. Формулировки разные не для красоты: 401 значит, что приложение
          настроено неверно, а 502 — что сервер не смог достучаться до Riot. -->

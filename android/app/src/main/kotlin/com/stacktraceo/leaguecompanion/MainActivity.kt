@@ -5,11 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.stacktraceo.leaguecompanion.debug.DebugScreen
+import com.stacktraceo.leaguecompanion.ui.navigation.LeagueNavHost
 import com.stacktraceo.leaguecompanion.ui.theme.LeagueCompanionTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -20,17 +17,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             LeagueCompanionTheme {
-                AppScaffold()
+                // Scaffold'ы живут в самих экранах: у поиска и у профиля разные
+                // topBar'ы, и общий на всё приложение пришлось бы настраивать
+                // снаружи по текущему маршруту.
+                LeagueNavHost(modifier = Modifier.fillMaxSize())
             }
         }
-    }
-}
-
-// Пока единственный экран — отладочный (пакет debug). Навигация появится вместе с
-// настоящими экранами в вехе «Дни 11–12», тогда же уедет и он.
-@Composable
-private fun AppScaffold() {
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        DebugScreen(modifier = Modifier.padding(innerPadding))
     }
 }
