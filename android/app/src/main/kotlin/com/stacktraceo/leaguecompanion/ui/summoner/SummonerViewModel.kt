@@ -3,7 +3,6 @@ package com.stacktraceo.leaguecompanion.ui.summoner
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.toRoute
 import com.stacktraceo.leaguecompanion.core.AppError
 import com.stacktraceo.leaguecompanion.core.AppResult
 import com.stacktraceo.leaguecompanion.data.repository.MatchRepository
@@ -53,7 +52,16 @@ class SummonerViewModel
         private val summoners: SummonerRepository,
         private val matches: MatchRepository,
     ) : ViewModel() {
-        private val puuid = savedStateHandle.toRoute<SummonerRoute>().puuid
+        /**
+         * Аргумент читается по имени свойства маршрута, а не через `toRoute()`.
+         *
+         * `toRoute()` разбирает `android.os.Bundle`, которого в JVM-тестах нет —
+         * ViewModel можно было бы проверить только под Robolectric, то есть тащить
+         * инструментальный рантайм ради чтения одной строки. `SummonerRoute::puuid.name`
+         * при этом остаётся ссылкой на свойство: переименуют его — сломается сборка,
+         * а не рантайм.
+         */
+        private val puuid: String = checkNotNull(savedStateHandle[SummonerRoute::puuid.name])
 
         private val visible = MutableStateFlow(MatchRepository.DEFAULT_PAGE_SIZE)
         private val refreshing = MutableStateFlow(false)
