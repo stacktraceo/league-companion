@@ -37,6 +37,7 @@ import com.stacktraceo.leaguecompanion.ui.error.asText
 @Composable
 fun SummonerScreen(
     onBack: () -> Unit,
+    onOpenMatch: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SummonerViewModel = hiltViewModel(),
 ) {
@@ -82,7 +83,13 @@ fun SummonerScreen(
 
                 !state.hasContent -> EmptyState(message = stringResource(R.string.summoner_missing))
 
-                else -> Content(state = state, onRefresh = viewModel::refresh, onLoadMore = viewModel::loadMore)
+                else ->
+                    Content(
+                        state = state,
+                        onRefresh = viewModel::refresh,
+                        onLoadMore = viewModel::loadMore,
+                        onOpenMatch = onOpenMatch,
+                    )
             }
         }
     }
@@ -93,6 +100,7 @@ private fun Content(
     state: SummonerUiState,
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
+    onOpenMatch: (String) -> Unit,
 ) {
     PullToRefreshBox(
         isRefreshing = state.refreshing,
@@ -115,7 +123,7 @@ private fun Content(
             }
 
             items(items = state.matches, key = { it.matchId }) { match ->
-                MatchCard(match)
+                MatchCard(match = match, onClick = { onOpenMatch(match.matchId) })
             }
 
             if (state.canLoadMore) {

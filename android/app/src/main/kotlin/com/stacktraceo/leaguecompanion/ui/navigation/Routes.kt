@@ -18,3 +18,13 @@ data object SearchRoute
 data class SummonerRoute(
     val puuid: String,
 )
+
+/**
+ * `puuid` едет вместе с `matchId` не для запроса — детали матча его не требуют, —
+ * а чтобы экран знал, кого из десяти участников подсветить.
+ */
+@Serializable
+data class MatchRoute(
+    val matchId: String,
+    val puuid: String,
+)

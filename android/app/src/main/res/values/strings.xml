@@ -44,6 +44,13 @@
     <string name="match_score">%1$s · KDA %2$s</string>
     <string name="match_details">%1$s · %2$d CS · %3$s</string>
 
+    <!-- Экран деталей матча. -->
+    <string name="match_title">Match</string>
+    <string name="match_objectives">%1$d kills · %2$d towers · %3$d dragons · %4$d barons</string>
+    <string name="match_player_level">lvl %1$d</string>
+    <string name="match_player_line">%1$s · KDA %2$s · %3$d CS · %4$d gold</string>
+    <string name="match_player_impact">%1$d damage · %2$d vision</string>
+
     <!-- «Сколько прошло» для карточки матча. Через plurals, а не конкатенацией:
          в английском «1 minute» и «2 minutes» — разные формы, и склеенное
          "$n minutes" врало бы на каждой первой минуте. -->

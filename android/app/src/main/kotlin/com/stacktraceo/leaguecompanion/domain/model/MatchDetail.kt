@@ -42,4 +42,15 @@ data class MatchPlayer(
     val tracked: Boolean,
 ) {
     val displayName: String get() = if (riotId.isEmpty()) championName else "$riotId#$tagLine"
+
+    /**
+     * Единственное место, где KDA считается на клиенте, и обойтись без него нельзя:
+     * бэкенд знает только отслеживаемых саммонеров, а здесь девять чужих участников.
+     *
+     * Правило повторяет `domain.MatchParticipant.KDA` дословно, включая «при нуле
+     * смертей возвращаем K+A». Расхождение было бы видно сразу: своя строка в этом
+     * списке и та же игра в ленте показали бы разные числа. На это есть тест.
+     */
+    val kda: Double
+        get() = if (deaths == 0) (kills + assists).toDouble() else (kills + assists).toDouble() / deaths
 }

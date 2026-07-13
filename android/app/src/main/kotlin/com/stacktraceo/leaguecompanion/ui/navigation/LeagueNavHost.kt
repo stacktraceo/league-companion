@@ -6,6 +6,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.stacktraceo.leaguecompanion.ui.match.MatchDetailScreen
 import com.stacktraceo.leaguecompanion.ui.search.SearchScreen
 import com.stacktraceo.leaguecompanion.ui.summoner.SummonerScreen
 
@@ -30,8 +32,20 @@ fun LeagueNavHost(
             SearchScreen(onOpenSummoner = { puuid -> navController.navigate(SummonerRoute(puuid)) })
         }
 
-        composable<SummonerRoute> {
-            SummonerScreen(onBack = { navController.popBackStack() })
+        composable<SummonerRoute> { entry ->
+            // Здесь toRoute() уместен: это композиция, а не ViewModel, и Bundle
+            // на устройстве есть. В ViewModel'ях аргументы читаются по имени
+            // свойства — иначе их нельзя было бы проверить JVM-тестом.
+            val puuid = entry.toRoute<SummonerRoute>().puuid
+
+            SummonerScreen(
+                onBack = { navController.popBackStack() },
+                onOpenMatch = { matchId -> navController.navigate(MatchRoute(matchId = matchId, puuid = puuid)) },
+            )
+        }
+
+        composable<MatchRoute> {
+            MatchDetailScreen(onBack = { navController.popBackStack() })
         }
     }
 }

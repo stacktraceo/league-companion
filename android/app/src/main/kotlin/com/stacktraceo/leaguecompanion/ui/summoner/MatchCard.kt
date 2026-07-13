@@ -37,9 +37,11 @@ import com.stacktraceo.leaguecompanion.ui.theme.WinColor
 @Composable
 fun MatchCard(
     match: MatchListItem,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = if (match.win) WinColor else LossColor),
     ) {
