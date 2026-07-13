@@ -1,7 +1,9 @@
 package com.stacktraceo.leaguecompanion.data.repository
 
 import com.stacktraceo.leaguecompanion.data.local.MatchDao
+import com.stacktraceo.leaguecompanion.data.local.MatchDetailDao
 import com.stacktraceo.leaguecompanion.data.local.SummonerDao
+import com.stacktraceo.leaguecompanion.data.local.entity.MatchDetailEntity
 import com.stacktraceo.leaguecompanion.data.local.entity.MatchEntity
 import com.stacktraceo.leaguecompanion.data.local.entity.MatchParticipantEntity
 import com.stacktraceo.leaguecompanion.data.local.entity.RankedStatEntity
@@ -18,6 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody
+import okhttp3.ResponseBody.Companion.toResponseBody
 
 /**
  * Подделки под DAO и API.
@@ -110,15 +115,30 @@ class FakeMatchDao : MatchDao {
     )
 }
 
+class FakeMatchDetailDao : MatchDetailDao {
+    private val details = MutableStateFlow<Map<String, MatchDetailEntity>>(emptyMap())
+
+    override fun observe(matchId: String): Flow<MatchDetailEntity?> = details.map { it[matchId] }
+
+    override suspend fun upsert(detail: MatchDetailEntity) {
+        details.update { it + (detail.matchId to detail) }
+    }
+}
+
 class FakeLeagueApi : LeagueApi {
     var summonerResponse: SummonerDto? = null
     var matchesResponse: MatchListDto = MatchListDto(items = emptyList(), limit = 20, offset = 0, total = 0)
     var syncResponse: SyncAcceptedDto = SyncAcceptedDto(status = "accepted", puuid = "", lastSyncedAt = null)
 
+    var statsResponse: StatsDto? = null
+    var matchDetailJson: String? = null
+
     /** Подставляется тестом, чтобы следующий вызов упал так же, как настоящий Retrofit. */
     var failure: Throwable? = null
 
     val matchRequests = mutableListOf<Pair<Int, Int>>()
+    val statsRequests = mutableListOf<String>()
+    val detailRequests = mutableListOf<String>()
 
     override suspend fun trackSummoner(request: CreateSummonerRequest): SummonerDto = respondWithSummoner()
 
@@ -137,7 +157,18 @@ class FakeLeagueApi : LeagueApi {
     override suspend fun stats(
         puuid: String,
         period: String,
-    ): StatsDto = throw UnsupportedOperationException("статистика в этой вехе не используется")
+    ): StatsDto {
+        failure?.let { throw it }
+        statsRequests += period
+        return checkNotNull(statsResponse) { "тест не задал statsResponse" }
+    }
+
+    override suspend fun matchDetail(matchId: String): ResponseBody {
+        failure?.let { throw it }
+        detailRequests += matchId
+        return checkNotNull(matchDetailJson) { "тест не задал matchDetailJson" }
+            .toResponseBody("application/json".toMediaType())
+    }
 
     override suspend fun sync(puuid: String): SyncAcceptedDto {
         failure?.let { throw it }

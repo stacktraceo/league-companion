@@ -5,6 +5,7 @@ import com.stacktraceo.leaguecompanion.data.remote.dto.MatchListDto
 import com.stacktraceo.leaguecompanion.data.remote.dto.StatsDto
 import com.stacktraceo.leaguecompanion.data.remote.dto.SummonerDto
 import com.stacktraceo.leaguecompanion.data.remote.dto.SyncAcceptedDto
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -40,4 +41,15 @@ interface LeagueApi {
     suspend fun sync(
         @Path("puuid") puuid: String,
     ): SyncAcceptedDto
+
+    /**
+     * Детали матча возвращаются телом, а не разобранным DTO, намеренно: тот же
+     * текст кладётся в кэш как есть. Дай мы Retrofit разобрать ответ — пришлось бы
+     * сериализовать его обратно, чтобы сохранить, то есть гонять данные через два
+     * лишних преобразования и потерять поля, которых нет в DTO.
+     */
+    @GET("api/v1/matches/{matchId}")
+    suspend fun matchDetail(
+        @Path("matchId") matchId: String,
+    ): ResponseBody
 }

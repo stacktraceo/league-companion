@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.stacktraceo.leaguecompanion.data.local.LeagueDatabase
 import com.stacktraceo.leaguecompanion.data.local.MatchDao
+import com.stacktraceo.leaguecompanion.data.local.MatchDetailDao
 import com.stacktraceo.leaguecompanion.data.local.SummonerDao
 import dagger.Module
 import dagger.Provides
@@ -22,10 +23,11 @@ object DatabaseModule {
     ): LeagueDatabase =
         Room
             .databaseBuilder(context, LeagueDatabase::class.java, LeagueDatabase.NAME)
-            // База — кэш поверх бэкенда, своих данных в ней нет. Писать миграции ради
-            // того, чтобы сохранить перекачиваемое, значит поддерживать вторую копию
-            // схемы; при смене версии таблицы просто пересоздаются, и следующий
-            // refresh наполняет их заново.
+            .addMigrations(LeagueDatabase.MIGRATION_1_2)
+            // Фолбэк на случай версии, для которой миграции нет: содержимое базы
+            // целиком перекачивается с бэкенда. Но списки отслеживаемых саммонеров
+            // пользователь заводит руками, поэтому там, где потеря состояния заметна,
+            // пишется настоящая миграция — см. MIGRATION_1_2.
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
 
@@ -34,4 +36,7 @@ object DatabaseModule {
 
     @Provides
     fun provideMatchDao(database: LeagueDatabase): MatchDao = database.matchDao()
+
+    @Provides
+    fun provideMatchDetailDao(database: LeagueDatabase): MatchDetailDao = database.matchDetailDao()
 }
