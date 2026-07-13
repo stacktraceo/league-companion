@@ -44,9 +44,27 @@
     <string name="match_score">%1$s · KDA %2$s</string>
     <string name="match_details">%1$s · %2$d CS · %3$s</string>
 
-    <!-- Экран деталей матча. -->
+    <!-- Экран деталей матча. Объективы — четыре отдельных plurals, склеиваемых
+         разделителем: одна строка на всё не годится, у Android plurals считает
+         количество по одному аргументу, а «1 towers · 1 barons» бывает в каждой
+         второй игре. -->
     <string name="match_title">Match</string>
-    <string name="match_objectives">%1$d kills · %2$d towers · %3$d dragons · %4$d barons</string>
+    <plurals name="match_kills">
+        <item quantity="one">%1$d kill</item>
+        <item quantity="other">%1$d kills</item>
+    </plurals>
+    <plurals name="match_towers">
+        <item quantity="one">%1$d tower</item>
+        <item quantity="other">%1$d towers</item>
+    </plurals>
+    <plurals name="match_dragons">
+        <item quantity="one">%1$d dragon</item>
+        <item quantity="other">%1$d dragons</item>
+    </plurals>
+    <plurals name="match_barons">
+        <item quantity="one">%1$d baron</item>
+        <item quantity="other">%1$d barons</item>
+    </plurals>
     <string name="match_player_level">lvl %1$d</string>
     <string name="match_player_line">%1$s · KDA %2$s · %3$d CS · %4$d gold</string>
     <string name="match_player_impact">%1$d damage · %2$d vision</string>
@@ -56,10 +74,16 @@
     <string name="stats_title">Statistics</string>
     <string name="stats_period">Last %1$d days</string>
     <string name="stats_winrate">%1$s win rate</string>
-    <string name="stats_games">%1$d games · %2$dW %3$dL</string>
+    <plurals name="stats_games">
+        <item quantity="one">%1$d game · %2$dW %3$dL</item>
+        <item quantity="other">%1$d games · %2$dW %3$dL</item>
+    </plurals>
     <string name="stats_kda">KDA %1$s · %2$d / %3$d / %4$d total</string>
     <string name="stats_top">Top champions</string>
-    <string name="stats_champion_line">%1$d games · %2$s · KDA %3$s</string>
+    <plurals name="stats_champion_line">
+        <item quantity="one">%1$d game · %2$s · KDA %3$s</item>
+        <item quantity="other">%1$d games · %2$s · KDA %3$s</item>
+    </plurals>
     <string name="stats_empty">No games in this period yet.</string>
 
     <!-- «Сколько прошло» для карточки матча. Через plurals, а не конкатенацией:

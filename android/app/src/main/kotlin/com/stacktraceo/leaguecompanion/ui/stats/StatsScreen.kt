@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -125,7 +126,7 @@ private fun Summary(stats: Stats) {
                 style = MaterialTheme.typography.headlineSmall,
             )
             Text(
-                text = stringResource(R.string.stats_games, stats.games, stats.wins, stats.losses),
+                text = pluralStringResource(R.plurals.stats_games, stats.games, stats.games, stats.wins, stats.losses),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
@@ -149,8 +150,9 @@ private fun ChampionBar(
             Text(text = champion.championName, style = MaterialTheme.typography.bodyLarge)
             Text(
                 text =
-                    stringResource(
-                        R.string.stats_champion_line,
+                    pluralStringResource(
+                        R.plurals.stats_champion_line,
+                        champion.games,
                         champion.games,
                         formatWinRate(champion.winRate),
                         formatKda(champion.kda),

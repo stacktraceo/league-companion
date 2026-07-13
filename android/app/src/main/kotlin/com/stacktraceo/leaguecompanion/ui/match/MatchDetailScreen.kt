@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -124,8 +125,16 @@ private fun TeamHeader(team: TeamSide) {
             fontWeight = FontWeight.Bold,
             color = Color.White,
         )
+        val objectives =
+            listOf(
+                pluralStringResource(R.plurals.match_kills, team.kills, team.kills),
+                pluralStringResource(R.plurals.match_towers, team.towers, team.towers),
+                pluralStringResource(R.plurals.match_dragons, team.dragons, team.dragons),
+                pluralStringResource(R.plurals.match_barons, team.barons, team.barons),
+            ).joinToString(" · ")
+
         Text(
-            text = stringResource(R.string.match_objectives, team.kills, team.towers, team.dragons, team.barons),
+            text = objectives,
             style = MaterialTheme.typography.bodySmall,
             color = Color.White,
         )
