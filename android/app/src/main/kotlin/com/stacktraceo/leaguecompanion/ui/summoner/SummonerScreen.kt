@@ -38,6 +38,7 @@ import com.stacktraceo.leaguecompanion.ui.error.asText
 fun SummonerScreen(
     onBack: () -> Unit,
     onOpenMatch: (String) -> Unit,
+    onOpenStats: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SummonerViewModel = hiltViewModel(),
 ) {
@@ -69,6 +70,11 @@ fun SummonerScreen(
                 navigationIcon = {
                     TextButton(onClick = onBack) {
                         Text(stringResource(R.string.action_back))
+                    }
+                },
+                actions = {
+                    TextButton(onClick = onOpenStats, enabled = state.hasContent) {
+                        Text(stringResource(R.string.action_stats))
                     }
                 },
             )

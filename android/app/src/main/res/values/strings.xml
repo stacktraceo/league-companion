@@ -51,6 +51,17 @@
     <string name="match_player_line">%1$s · KDA %2$s · %3$d CS · %4$d gold</string>
     <string name="match_player_impact">%1$d damage · %2$d vision</string>
 
+    <!-- Экран статистики. -->
+    <string name="action_stats">Stats</string>
+    <string name="stats_title">Statistics</string>
+    <string name="stats_period">Last %1$d days</string>
+    <string name="stats_winrate">%1$s win rate</string>
+    <string name="stats_games">%1$d games · %2$dW %3$dL</string>
+    <string name="stats_kda">KDA %1$s · %2$d / %3$d / %4$d total</string>
+    <string name="stats_top">Top champions</string>
+    <string name="stats_champion_line">%1$d games · %2$s · KDA %3$s</string>
+    <string name="stats_empty">No games in this period yet.</string>
+
     <!-- «Сколько прошло» для карточки матча. Через plurals, а не конкатенацией:
          в английском «1 minute» и «2 minutes» — разные формы, и склеенное
          "$n minutes" врало бы на каждой первой минуте. -->

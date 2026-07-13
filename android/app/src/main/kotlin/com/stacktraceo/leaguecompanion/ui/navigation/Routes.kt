@@ -28,3 +28,8 @@ data class MatchRoute(
     val matchId: String,
     val puuid: String,
 )
+
+@Serializable
+data class StatsRoute(
+    val puuid: String,
+)

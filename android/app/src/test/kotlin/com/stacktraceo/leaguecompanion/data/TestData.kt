@@ -1,7 +1,9 @@
 package com.stacktraceo.leaguecompanion.data
 
+import com.stacktraceo.leaguecompanion.data.remote.dto.ChampionStatsDto
 import com.stacktraceo.leaguecompanion.data.remote.dto.MatchListItemDto
 import com.stacktraceo.leaguecompanion.data.remote.dto.RankedDto
+import com.stacktraceo.leaguecompanion.data.remote.dto.StatsDto
 import com.stacktraceo.leaguecompanion.data.remote.dto.SummonerDto
 import java.time.Instant
 
@@ -48,6 +50,48 @@ fun rankedDto(
     wins = wins,
     losses = losses,
     updatedAt = updatedAt,
+)
+
+// Значения по умолчанию — те же, что бэкенд вернул на живой проверке вехи 8
+// (20 игр, 11/9, 55%, KDA 3.06, топ — Yone): на них же настроена ручная сверка экрана.
+fun statsDto(
+    periodDays: Int = 30,
+    since: Instant = Instant.parse("2026-06-13T00:00:00Z"),
+    games: Int = 20,
+    wins: Int = 11,
+    losses: Int = 9,
+    winRate: Double = 0.55,
+    kills: Int = 104,
+    deaths: Int = 85,
+    assists: Int = 156,
+    kda: Double = 3.0588235294117645,
+    topChampions: List<ChampionStatsDto> = listOf(championStatsDto()),
+) = StatsDto(
+    periodDays = periodDays,
+    since = since,
+    games = games,
+    wins = wins,
+    losses = losses,
+    winRate = winRate,
+    kills = kills,
+    deaths = deaths,
+    assists = assists,
+    kda = kda,
+    topChampions = topChampions,
+)
+
+fun championStatsDto(
+    championName: String = "Yone",
+    games: Int = 5,
+    wins: Int = 4,
+    winRate: Double = 0.8,
+    kda: Double = 4.25,
+) = ChampionStatsDto(
+    championName = championName,
+    games = games,
+    wins = wins,
+    winRate = winRate,
+    kda = kda,
 )
 
 fun matchItemDto(

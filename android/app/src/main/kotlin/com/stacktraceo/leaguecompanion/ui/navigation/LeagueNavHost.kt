@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.stacktraceo.leaguecompanion.ui.match.MatchDetailScreen
 import com.stacktraceo.leaguecompanion.ui.search.SearchScreen
+import com.stacktraceo.leaguecompanion.ui.stats.StatsScreen
 import com.stacktraceo.leaguecompanion.ui.summoner.SummonerScreen
 
 /**
@@ -41,11 +42,16 @@ fun LeagueNavHost(
             SummonerScreen(
                 onBack = { navController.popBackStack() },
                 onOpenMatch = { matchId -> navController.navigate(MatchRoute(matchId = matchId, puuid = puuid)) },
+                onOpenStats = { navController.navigate(StatsRoute(puuid)) },
             )
         }
 
         composable<MatchRoute> {
             MatchDetailScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable<StatsRoute> {
+            StatsScreen(onBack = { navController.popBackStack() })
         }
     }
 }
