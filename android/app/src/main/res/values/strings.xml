@@ -30,6 +30,7 @@
     <string name="summoner_title_fallback">Summoner</string>
     <string name="summoner_missing">This summoner is no longer tracked.</string>
     <string name="summoner_no_matches">No matches yet — they arrive after the first sync.</string>
+    <string name="profile_icon_description">Summoner icon</string>
     <string name="profile_region_level">%1$s · level %2$d</string>
     <string name="profile_unranked">Unranked this season</string>
     <string name="profile_queue_rank">%1$s: %2$s %3$s · %4$d LP</string>
@@ -66,8 +67,10 @@
         <item quantity="other">%1$d barons</item>
     </plurals>
     <string name="match_player_level">lvl %1$d</string>
-    <string name="match_player_line">%1$s · KDA %2$s · %3$d CS · %4$d gold</string>
-    <string name="match_player_impact">%1$d damage · %2$d vision</string>
+    <!-- Золото переехало во вторую строку, когда в первой появилась иконка: с ним
+         строка не влезала в ширину и переносилась на половине участников. -->
+    <string name="match_player_line">%1$s · KDA %2$s · %3$d CS</string>
+    <string name="match_player_impact">%1$d gold · %2$d damage · %3$d vision</string>
 
     <!-- Экран статистики. -->
     <string name="action_stats">Stats</string>

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +45,8 @@ import com.stacktraceo.leaguecompanion.ui.error.asText
 import com.stacktraceo.leaguecompanion.ui.format.formatDuration
 import com.stacktraceo.leaguecompanion.ui.format.formatKda
 import com.stacktraceo.leaguecompanion.ui.format.formatScore
+import com.stacktraceo.leaguecompanion.ui.image.DataDragon
+import com.stacktraceo.leaguecompanion.ui.image.RemoteIcon
 import com.stacktraceo.leaguecompanion.ui.theme.LossColor
 import com.stacktraceo.leaguecompanion.ui.theme.WinColor
 
@@ -151,51 +154,63 @@ private fun PlayerRow(player: MatchPlayer) {
             Color.Transparent
         }
 
-    Column(
+    Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .background(background)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+        RemoteIcon(
+            url = DataDragon.championIconUrl(player.championName),
+            contentDescription = null,
+            modifier = Modifier.size(PLAYER_ICON_SIZE),
+        )
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "${player.championName} · ${player.displayName}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (player.tracked) FontWeight.Bold else FontWeight.Normal,
+                )
+                Text(
+                    text = stringResource(R.string.match_player_level, player.level),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             Text(
-                text = "${player.championName} · ${player.displayName}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (player.tracked) FontWeight.Bold else FontWeight.Normal,
+                text =
+                    stringResource(
+                        R.string.match_player_line,
+                        formatScore(player.kills, player.deaths, player.assists),
+                        formatKda(player.kda),
+                        player.cs,
+                    ),
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
             )
+
             Text(
-                text = stringResource(R.string.match_player_level, player.level),
+                text = stringResource(R.string.match_player_impact, player.gold, player.damage, player.visionScore),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = FontFamily.Monospace,
             )
         }
-
-        Text(
-            text =
-                stringResource(
-                    R.string.match_player_line,
-                    formatScore(player.kills, player.deaths, player.assists),
-                    formatKda(player.kda),
-                    player.cs,
-                    player.gold,
-                ),
-            style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
-        )
-
-        Text(
-            text = stringResource(R.string.match_player_impact, player.damage, player.visionScore),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontFamily = FontFamily.Monospace,
-        )
     }
 }
 
 private const val TRACKED_ALPHA = 0.22f
+
+private val PLAYER_ICON_SIZE = 32.dp

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,8 @@ import com.stacktraceo.leaguecompanion.ui.format.asText
 import com.stacktraceo.leaguecompanion.ui.format.formatDuration
 import com.stacktraceo.leaguecompanion.ui.format.formatKda
 import com.stacktraceo.leaguecompanion.ui.format.formatScore
+import com.stacktraceo.leaguecompanion.ui.image.DataDragon
+import com.stacktraceo.leaguecompanion.ui.image.RemoteIcon
 import com.stacktraceo.leaguecompanion.ui.theme.LossColor
 import com.stacktraceo.leaguecompanion.ui.theme.WinColor
 
@@ -54,12 +57,24 @@ fun MatchCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = match.championName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RemoteIcon(
+                        url = DataDragon.championIconUrl(match.championName),
+                        // Имя чемпиона тут же рядом текстом, повторять его для
+                        // screen reader'а незачем.
+                        contentDescription = null,
+                        modifier = Modifier.size(CHAMPION_ICON_SIZE),
+                    )
+                    Text(
+                        text = match.championName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
                 Text(
                     text = stringResource(if (match.win) R.string.match_victory else R.string.match_defeat),
                     style = MaterialTheme.typography.labelLarge,
@@ -94,3 +109,5 @@ fun MatchCard(
 }
 
 private const val SECONDARY_ALPHA = 0.8f
+
+private val CHAMPION_ICON_SIZE = 36.dp
