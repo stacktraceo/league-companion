@@ -63,6 +63,15 @@ class ApiErrorMapperTest {
     }
 
     @Test
+    fun `404 матча не путается с 404 саммонера`() {
+        // На экране деталей общий текст «Summoner not found» отправлял бы искать
+        // несуществующую проблему: матч есть, его просто ещё не синхронизировали.
+        val error = mapper.map(httpException(404, """{"error":"match_not_found","message":"матч не найден"}"""))
+
+        assertEquals(AppError.MatchNotFound, error)
+    }
+
+    @Test
     fun `400 доносит сообщение бэкенда`() {
         val error = mapper.map(httpException(400, """{"error":"invalid_region","message":"неизвестный регион"}"""))
 

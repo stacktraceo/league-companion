@@ -16,6 +16,7 @@
     <string name="error_no_network">No connection to the backend. Is it running?</string>
     <string name="error_unauthorized">Wrong API key. Check LC_API_KEY in local.properties.</string>
     <string name="error_not_found">Summoner not found.</string>
+    <string name="error_match_not_found">This match has not been synced yet. Try again in a minute.</string>
     <string name="error_rate_limited">Rate limited. Try again in %1$d s.</string>
     <string name="error_riot_unavailable">The backend cannot reach Riot API. Its key may have expired.</string>
     <string name="error_server">Backend error %1$d. Check its logs.</string>
@@ -50,6 +51,7 @@
          количество по одному аргументу, а «1 towers · 1 barons» бывает в каждой
          второй игре. -->
     <string name="match_title">Match</string>
+    <string name="match_unavailable">Could not read this match. Try again.</string>
     <plurals name="match_kills">
         <item quantity="one">%1$d kill</item>
         <item quantity="other">%1$d kills</item>

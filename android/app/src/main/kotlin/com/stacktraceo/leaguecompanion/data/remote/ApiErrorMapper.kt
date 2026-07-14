@@ -40,7 +40,10 @@ class ApiErrorMapper
 
             return when (exception.code()) {
                 HTTP_UNAUTHORIZED -> AppError.Unauthorized
-                HTTP_NOT_FOUND -> AppError.NotFound
+                // Под 404 у бэкенда два разных случая: ненайденный саммонер и матч,
+                // до которого ещё не дошла синхронизация (httpapi/matches.go).
+                // Второй чинится ожиданием, и общий текст врал бы про первый.
+                HTTP_NOT_FOUND -> if (apiError.error == MATCH_NOT_FOUND) AppError.MatchNotFound else AppError.NotFound
                 HTTP_BAD_REQUEST -> AppError.BadRequest(apiError.message)
                 HTTP_TOO_MANY_REQUESTS ->
                     AppError.RateLimited(
@@ -68,6 +71,8 @@ class ApiErrorMapper
 
             /** Если бэкенд не назвал срок — ждём окно второго лимита Riot. */
             private const val DEFAULT_RETRY_AFTER_SECONDS = 120
+
+            private const val MATCH_NOT_FOUND = "match_not_found"
         }
     }
 

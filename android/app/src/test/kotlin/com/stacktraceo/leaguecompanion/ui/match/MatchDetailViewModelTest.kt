@@ -99,7 +99,7 @@ class MatchDetailViewModelTest {
             observeState(viewModel)
             advanceUntilIdle()
 
-            assertEquals(AppError.NotFound, viewModel.state.value.error)
+            assertEquals(AppError.MatchNotFound, viewModel.state.value.error)
         }
 
     @Test

@@ -16,7 +16,17 @@ sealed interface AppError {
     /** Бэкенд не принял X-API-Key приложения. */
     data object Unauthorized : AppError
 
+    /** Саммонера нет ни у Riot, ни в списке отслеживаемых. */
     data object NotFound : AppError
+
+    /**
+     * Матч есть в ленте, но бэкенд его ещё не синхронизировал.
+     *
+     * Отдельно от [NotFound] потому, что это не ошибка и чинится сама: лента живёт
+     * в Room, а детали приезжают отдельным запросом, и «саммонер не найден» на
+     * экране матча отправляло бы искать несуществующую проблему.
+     */
+    data object MatchNotFound : AppError
 
     /** Бэкенд или Riot попросили подождать; секунды — из заголовка Retry-After. */
     data class RateLimited(

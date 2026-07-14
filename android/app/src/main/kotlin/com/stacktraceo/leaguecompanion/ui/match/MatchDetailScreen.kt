@@ -88,6 +88,15 @@ fun MatchDetailScreen(
                 !state.hasContent && errorText != null ->
                     ErrorState(message = errorText, onRetry = viewModel::refresh)
 
+                // Загрузка прошла без ошибки, а показывать нечего: так выглядит
+                // битая строка кэша — репозиторий отдаёт по ней null, чтобы не
+                // ронять подписку. Без этой ветки экран остался бы просто пустым.
+                !state.hasContent ->
+                    ErrorState(
+                        message = stringResource(R.string.match_unavailable),
+                        onRetry = viewModel::refresh,
+                    )
+
                 else ->
                     LazyColumn(
                         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),

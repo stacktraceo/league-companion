@@ -20,6 +20,7 @@ fun AppError.asText(): String =
         AppError.NoNetwork -> stringResource(R.string.error_no_network)
         AppError.Unauthorized -> stringResource(R.string.error_unauthorized)
         AppError.NotFound -> stringResource(R.string.error_not_found)
+        AppError.MatchNotFound -> stringResource(R.string.error_match_not_found)
         AppError.RiotUnavailable -> stringResource(R.string.error_riot_unavailable)
         is AppError.RateLimited -> stringResource(R.string.error_rate_limited, retryAfterSeconds)
         is AppError.Server -> stringResource(R.string.error_server, statusCode)
