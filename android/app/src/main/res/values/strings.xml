@@ -36,6 +36,10 @@
     <string name="profile_unranked">Unranked this season</string>
     <string name="profile_queue_rank">%1$s: %2$s %3$s · %4$d LP</string>
     <string name="profile_record">%1$dW %2$dL · %3$s win rate</string>
+    <!-- Возраст данных, а не дата: ранг замирает, когда бэкенд перестаёт добираться
+         до Riot, и отличить недельный LP от свежего иначе нечем. -->
+    <string name="profile_synced">Updated %1$s</string>
+    <string name="profile_never_synced">Not synced yet</string>
     <string name="queue_solo">Solo/Duo</string>
     <string name="queue_flex">Flex</string>
 

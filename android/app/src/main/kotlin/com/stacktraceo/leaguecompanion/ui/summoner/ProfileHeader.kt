@@ -18,9 +18,12 @@ import androidx.compose.ui.unit.dp
 import com.stacktraceo.leaguecompanion.R
 import com.stacktraceo.leaguecompanion.domain.model.RankedStat
 import com.stacktraceo.leaguecompanion.domain.model.Summoner
+import com.stacktraceo.leaguecompanion.ui.format.ago
+import com.stacktraceo.leaguecompanion.ui.format.asText
 import com.stacktraceo.leaguecompanion.ui.format.formatWinRate
 import com.stacktraceo.leaguecompanion.ui.image.DataDragon
 import com.stacktraceo.leaguecompanion.ui.image.RemoteIcon
+import java.time.Instant
 
 /** Профиль по SPEC.md 4.2: уровень, ранг (тир + LP), общий W/L. */
 @Composable
@@ -64,8 +67,37 @@ fun ProfileHeader(
             } else {
                 summoner.ranked.forEach { RankedRow(it) }
             }
+
+            SyncedAt(summoner.lastSyncedAt)
         }
     }
+}
+
+/**
+ * Возраст данных, а не просто дата.
+ *
+ * Ранг и LP приезжают с бэкенда и замирают, как только тот перестаёт добираться до
+ * Riot, — например, на протухшем 24-часовом ключе. До этой строки экран показывал
+ * недельный LP ровно так же уверенно, как минутный, и отличить их было нечем.
+ * Порога «уже устарело» здесь намеренно нет: он был бы выдуманным числом, а «6 days
+ * ago» человек оценивает сам.
+ */
+@Composable
+private fun SyncedAt(lastSyncedAt: Instant?) {
+    val text =
+        if (lastSyncedAt == null) {
+            // Профиль отвечает `201` раньше, чем заканчивается первая синхронизация,
+            // так что это нормальное состояние первых секунд, а не поломка.
+            stringResource(R.string.profile_never_synced)
+        } else {
+            stringResource(R.string.profile_synced, ago(lastSyncedAt).asText())
+        }
+
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
