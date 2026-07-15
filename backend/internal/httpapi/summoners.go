@@ -40,6 +40,7 @@ type SyncQueue interface {
 // SummonerStore — чтение саммонеров.
 type SummonerStore interface {
 	ByPUUID(ctx context.Context, puuid string) (domain.Summoner, error)
+	ByRiotID(ctx context.Context, region, gameName, tagLine string) (domain.Summoner, error)
 }
 
 // RankedStore — чтение ранговых снапшотов.
@@ -60,7 +61,13 @@ type MatchStore interface {
 // Профиль и ранг тянутся синхронно — три запроса к Riot, около полутора секунд.
 // Матчи (два десятка запросов) уходят в фон: держать ради них HTTP-соединение
 // на полминуты незачем, а саммонер уже сохранён и доступен (SPEC.md 3.4).
-func createSummoner(logger *slog.Logger, service ProfileSyncer, queue SyncQueue, ranked RankedStore) http.HandlerFunc {
+func createSummoner(
+	logger *slog.Logger,
+	service ProfileSyncer,
+	queue SyncQueue,
+	summoners SummonerStore,
+	ranked RankedStore,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var request createSummonerRequest
 
@@ -86,6 +93,10 @@ func createSummoner(logger *slog.Logger, service ProfileSyncer, queue SyncQueue,
 
 		summoner, created, err := service.SyncProfile(r.Context(), region, gameName, tagLine)
 		if err != nil {
+			if respondStale(w, r, logger, err, summoners, ranked, region, gameName, tagLine) {
+				return
+			}
+
 			respondUpstreamError(w, r, logger, err,
 				"summoner_not_found", "саммонер с таким Riot ID не найден")
 
@@ -110,6 +121,49 @@ func createSummoner(logger *slog.Logger, service ProfileSyncer, queue SyncQueue,
 
 		respondJSON(w, r, logger, status, summonerResponse(summoner, stats, false))
 	}
+}
+
+// respondStale отдаёт последний сохранённый снапшот, когда Riot недоступен
+// (SPEC.md 3.4). Сообщает, ответил ли он: если снапшота нет, отвечать нечем и
+// вызывающий идёт обычным путём с ошибкой.
+//
+// Статус — 200, а не 502 с данными: тело с настоящими данными под кодом ошибки
+// клиенты и прокси обрабатывают как ошибку, и смысл флага теряется. 502 остаётся
+// ровно для случая, когда отдать нечего, — и тогда код честно значит «не выполнено».
+//
+// В очередь тут ничего не ставим: Riot только что не ответил, и задача, которая
+// гарантированно упадёт в фоне, — лишняя строка в логе.
+func respondStale(
+	w http.ResponseWriter,
+	r *http.Request,
+	logger *slog.Logger,
+	cause error,
+	summoners SummonerStore,
+	ranked RankedStore,
+	region, gameName, tagLine string,
+) bool {
+	if !riotUnavailable(cause) {
+		return false
+	}
+
+	summoner, err := summoners.ByRiotID(r.Context(), region, gameName, tagLine)
+	if err != nil {
+		// Ни свежих данных, ни сохранённых — обычная ошибка, её и отдадим.
+		return false
+	}
+
+	stats, err := ranked.ByPUUID(r.Context(), summoner.PUUID)
+	if err != nil {
+		logger.WarnContext(r.Context(), "не удалось прочитать ранги для устаревшего ответа",
+			"puuid", summoner.PUUID, "error", err)
+	}
+
+	logger.WarnContext(r.Context(), "Riot недоступен, отдаём сохранённый снапшот",
+		"puuid", summoner.PUUID, "last_synced_at", summoner.LastSyncedAt, "error", cause)
+
+	respondJSON(w, r, logger, http.StatusOK, summonerResponse(summoner, stats, true))
+
+	return true
 }
 
 func validateCreateRequest(gameName, tagLine, region string) (string, bool) {

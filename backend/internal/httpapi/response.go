@@ -7,12 +7,12 @@ import (
 )
 
 // ErrorResponse — единый формат ошибок API (SPEC.md 3.4).
+//
+// Поля stale здесь нет намеренно: когда сохранённый снапшот есть, он уходит со
+// статусом 200 (см. respondStale), а ошибкой отвечаем только когда отдавать нечего.
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
-
-	// Stale выставляется, когда Riot недоступен, но есть закэшированные данные.
-	Stale bool `json:"stale,omitempty"`
 }
 
 // respondJSON сериализует payload и отдаёт его со статусом status.

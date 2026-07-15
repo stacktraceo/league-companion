@@ -61,7 +61,7 @@ func NewRouter(deps Deps) *chi.Mux {
 	router.Route("/api/v1", func(api chi.Router) {
 		api.Use(APIKeyAuth(deps.Logger, deps.ClientAPIKey))
 
-		api.Post("/summoners", createSummoner(deps.Logger, deps.Profiles, deps.Queue, deps.Ranked))
+		api.Post("/summoners", createSummoner(deps.Logger, deps.Profiles, deps.Queue, deps.Summoners, deps.Ranked))
 		api.Get("/summoners/{puuid}", getSummoner(deps.Logger, deps.Summoners, deps.Ranked))
 		api.Get("/summoners/{puuid}/matches", listMatches(deps.Logger, deps.Summoners, deps.Matches))
 		api.Get("/summoners/{puuid}/stats", getStats(deps.Logger, deps.Summoners, deps.Matches, now))

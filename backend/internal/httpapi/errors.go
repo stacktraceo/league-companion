@@ -58,6 +58,27 @@ func respondUpstreamError(
 	}
 }
 
+// riotUnavailable сообщает, что до Riot не дозвонились, — то есть отдать
+// сохранённый снапшот уместно (SPEC.md 3.4).
+//
+// Это не «любая ошибка»: 404 и неизвестный регион означают, что отдавать нечего по
+// существу, а 429 SPEC перечисляет отдельно от клаузы про stale — там надо подождать
+// названный Riot срок, а не показывать старые данные. Таймаут формально уходит как
+// 504, а не 502, но ситуация та же самая, и держать для неё худшее поведение не за что.
+func riotUnavailable(err error) bool {
+	var rateLimitErr *riot.RateLimitError
+
+	switch {
+	case errors.Is(err, riot.ErrNotFound), errors.Is(err, storage.ErrNotFound),
+		errors.Is(err, riot.ErrUnknownRegion),
+		errors.As(err, &rateLimitErr):
+		return false
+
+	default:
+		return true
+	}
+}
+
 // respondStorageError отвечает на ошибку чтения из БД.
 func respondStorageError(
 	w http.ResponseWriter,

@@ -82,6 +82,38 @@ func (r *Summoners) ByPUUID(ctx context.Context, puuid string) (domain.Summoner,
 	return summoner, nil
 }
 
+// ByRiotID ищет саммонера по тому же, что принимает POST /summoners, — без puuid.
+//
+// Нужен ровно для одного случая: Riot недоступен, и резолвить Riot ID в puuid нечем,
+// а отдать последний снапшот всё-таки надо (SPEC.md 3.4). Сравнение регистронезависимое:
+// пользователь набирает ник руками, а в базе лежит написание, которое вернул Riot.
+//
+// Строк может оказаться две: после переименования старая запись остаётся со своим
+// puuid и старым riot_id, а новая приходит с тем же именем, что набрали. Берём
+// синхронизированную позже — она ближе к тому, что человек ожидает увидеть.
+func (r *Summoners) ByRiotID(ctx context.Context, region, gameName, tagLine string) (domain.Summoner, error) {
+	const query = `
+		SELECT puuid, riot_id, tag_line, region, summoner_level, profile_icon_id,
+		       last_synced_at, created_at
+		FROM summoners
+		WHERE lower(region) = lower($1)
+		  AND lower(riot_id) = lower($2)
+		  AND lower(tag_line) = lower($3)
+		ORDER BY last_synced_at DESC NULLS LAST
+		LIMIT 1`
+
+	summoner, err := scanSummoner(r.pool.QueryRow(ctx, query, region, gameName, tagLine))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Summoner{}, fmt.Errorf("%w: саммонер %s#%s (%s)", ErrNotFound, gameName, tagLine, region)
+		}
+
+		return domain.Summoner{}, fmt.Errorf("storage: чтение саммонера по Riot ID: %w", err)
+	}
+
+	return summoner, nil
+}
+
 // All возвращает всех отслеживаемых саммонеров — по этому списку ходит фоновая
 // синхронизация (SPEC.md 3.5).
 func (r *Summoners) All(ctx context.Context) ([]domain.Summoner, error) {

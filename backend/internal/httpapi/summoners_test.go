@@ -173,11 +173,102 @@ func TestCreateSummonerMapsUpstreamErrors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			deps := testDeps()
 			deps.Profiles = &fakeProfiles{err: test.err}
+			// Хранилище пустое намеренно: при сохранённом снапшоте случаи
+			// «до Riot не дозвонились» отвечают 200 со stale, и тогда этот тест
+			// проверял бы не маппинг ошибок, а обход вокруг него.
+			deps.Summoners = &fakeSummoners{items: map[string]domain.Summoner{}}
 
 			rec := call(t, deps, http.MethodPost, "/api/v1/summoners", validCreateBody)
 			requireErrorCode(t, rec, test.status, test.code)
 		})
 	}
+}
+
+// Главный сценарий SPEC.md 3.4: Riot лежит (чаще всего — протух 24-часовой ключ),
+// но саммонер уже отслеживается, и отдать есть что.
+func TestCreateSummonerServesCachedProfileWhenRiotIsDown(t *testing.T) {
+	deps := testDeps()
+	deps.Profiles = &fakeProfiles{err: riot.ErrUnauthorized}
+	deps.Ranked = &fakeRanked{items: map[string][]domain.RankedStat{
+		testPUUID: {{QueueType: "RANKED_SOLO_5x5", Tier: "GOLD", Rank: "II", LeaguePoints: 47}},
+	}}
+
+	rec := call(t, deps, http.MethodPost, "/api/v1/summoners", validCreateBody)
+	require.Equal(t, http.StatusOK, rec.Code, "тело: %s", rec.Body.String())
+
+	body := decodeBody[SummonerResponse](t, rec)
+	assert.True(t, body.Stale)
+	assert.Equal(t, testPUUID, body.PUUID)
+	assert.Equal(t, 412, body.SummonerLevel)
+	// Ранги идут вместе с профилем: снапшот отдаётся целиком, а не наполовину.
+	require.Len(t, body.Ranked, 1)
+	assert.Equal(t, 47, body.Ranked[0].LeaguePoints)
+}
+
+// Riot только что не ответил — ставить в очередь задачу, которая гарантированно
+// упадёт в фоне, незачем.
+func TestCreateSummonerDoesNotEnqueueOnStale(t *testing.T) {
+	deps := testDeps()
+	deps.Profiles = &fakeProfiles{err: riot.ErrUnauthorized}
+	queue := deps.Queue.(*fakeQueue)
+
+	require.Equal(t, http.StatusOK, call(t, deps, http.MethodPost, "/api/v1/summoners", validCreateBody).Code)
+	assert.Empty(t, queue.enqueued)
+}
+
+// Незнакомый саммонер при лежащем Riot — обычная ошибка: отдавать нечего, и 502
+// честно значит «запрос не выполнен».
+func TestCreateSummonerReturns502WhenNothingCached(t *testing.T) {
+	deps := testDeps()
+	deps.Profiles = &fakeProfiles{err: riot.ErrUnauthorized}
+	deps.Summoners = &fakeSummoners{items: map[string]domain.Summoner{}}
+
+	rec := call(t, deps, http.MethodPost, "/api/v1/summoners", validCreateBody)
+	requireErrorCode(t, rec, http.StatusBadGateway, "riot_unauthorized")
+
+	assert.NotContains(t, rec.Body.String(), "puuid", "в ответе с ошибкой данных быть не должно")
+}
+
+// Не всякая ошибка — повод показать старое. 404 и 400 значат, что отдавать нечего по
+// существу, а 429 просит подождать названный Riot срок, а не смотреть вчерашние цифры.
+func TestCreateSummonerDoesNotServeStaleForClientErrors(t *testing.T) {
+	tests := map[string]struct {
+		err    error
+		status int
+		code   string
+	}{
+		"саммонер не найден": {err: riot.ErrNotFound, status: http.StatusNotFound, code: "summoner_not_found"},
+		"неизвестный регион": {err: riot.ErrUnknownRegion, status: http.StatusBadRequest, code: "invalid_region"},
+		"лимит Riot": {
+			err:    &riot.RateLimitError{RetryAfter: 7 * time.Second, Scope: "application"},
+			status: http.StatusTooManyRequests,
+			code:   "rate_limited",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Снапшот в хранилище есть — и всё равно не отдаётся.
+			deps := testDeps()
+			deps.Profiles = &fakeProfiles{err: test.err}
+
+			rec := call(t, deps, http.MethodPost, "/api/v1/summoners", validCreateBody)
+			requireErrorCode(t, rec, test.status, test.code)
+		})
+	}
+}
+
+// Регистр введённого имени не должен мешать найти снапшот: пользователь набирает ник
+// руками, а в базе лежит написание от Riot.
+func TestCreateSummonerFindsCachedProfileIgnoringCase(t *testing.T) {
+	deps := testDeps()
+	deps.Profiles = &fakeProfiles{err: riot.ErrUnauthorized}
+
+	rec := call(t, deps, http.MethodPost, "/api/v1/summoners",
+		`{"riotId":"test summoner","tagLine":"euw","region":"EUW1"}`)
+	require.Equal(t, http.StatusOK, rec.Code, "тело: %s", rec.Body.String())
+
+	assert.True(t, decodeBody[SummonerResponse](t, rec).Stale)
 }
 
 // На 429 отдаём наружу тот же срок, что назвал Riot: клиенту нужно знать, сколько ждать.

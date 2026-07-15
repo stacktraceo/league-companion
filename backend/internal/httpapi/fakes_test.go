@@ -114,6 +114,24 @@ func (f *fakeSummoners) ByPUUID(_ context.Context, puuid string) (domain.Summone
 	return summoner, nil
 }
 
+// ByRiotID ищет по тем же полям, что настоящий запрос, и так же без учёта регистра —
+// иначе подделка не поймала бы, что хендлер передаёт введённое пользователем имя.
+func (f *fakeSummoners) ByRiotID(_ context.Context, region, gameName, tagLine string) (domain.Summoner, error) {
+	if f.err != nil {
+		return domain.Summoner{}, f.err
+	}
+
+	for _, summoner := range f.items {
+		if strings.EqualFold(summoner.Region, region) &&
+			strings.EqualFold(summoner.RiotID, gameName) &&
+			strings.EqualFold(summoner.TagLine, tagLine) {
+			return summoner, nil
+		}
+	}
+
+	return domain.Summoner{}, storage.ErrNotFound
+}
+
 type fakeRanked struct {
 	items map[string][]domain.RankedStat
 	err   error

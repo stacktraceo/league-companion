@@ -135,6 +135,54 @@ func TestSummonerUpsertRefreshesProfile(t *testing.T) {
 	assert.Equal(t, 1, countRows(t, pool, "summoners"))
 }
 
+// ByRiotID — единственный способ найти снапшот, когда Riot лежит и резолвить puuid
+// нечем (SPEC.md 3.4).
+func TestSummonerByRiotIDIgnoresCase(t *testing.T) {
+	repo := NewSummoners(testPool(t))
+	ctx := context.Background()
+
+	mustUpsert(t, ctx, repo, testSummoner("puuid-1"))
+
+	// Пользователь набирает ник руками, а в базе лежит написание, которое вернул Riot.
+	stored, err := repo.ByRiotID(ctx, "EUW1", "test summoner", "euw")
+	require.NoError(t, err)
+	assert.Equal(t, "puuid-1", stored.PUUID)
+
+	_, err = repo.ByRiotID(ctx, "euw1", "Кто-то другой", "EUW")
+	assert.ErrorIs(t, err, ErrNotFound)
+
+	// Тег — часть идентификатора, а не украшение: тот же ник с другим тегом это
+	// другой человек.
+	_, err = repo.ByRiotID(ctx, "euw1", "Test Summoner", "RU")
+	assert.ErrorIs(t, err, ErrNotFound)
+}
+
+// После переименования старая запись остаётся со своим puuid, и под один Riot ID
+// могут подойти две строки. Берём синхронизированную позже.
+func TestSummonerByRiotIDPrefersFreshestSnapshot(t *testing.T) {
+	repo := NewSummoners(testPool(t))
+	ctx := context.Background()
+
+	mustUpsert(t, ctx, repo, testSummoner("puuid-старый"))
+	mustUpsert(t, ctx, repo, testSummoner("puuid-новый"))
+
+	// У «старого» отметка синхронизации есть, у «нового» пока нет — свежим считается
+	// тот, о ком известно больше.
+	require.NoError(t, repo.MarkSynced(ctx, "puuid-старый", time.Now()))
+
+	stored, err := repo.ByRiotID(ctx, "euw1", "Test Summoner", "EUW")
+	require.NoError(t, err)
+	assert.Equal(t, "puuid-старый", stored.PUUID)
+
+	// А когда синхронизирован и второй, побеждает он — NULLS LAST не должен
+	// перевешивать саму дату.
+	require.NoError(t, repo.MarkSynced(ctx, "puuid-новый", time.Now().Add(time.Minute)))
+
+	stored, err = repo.ByRiotID(ctx, "euw1", "Test Summoner", "EUW")
+	require.NoError(t, err)
+	assert.Equal(t, "puuid-новый", stored.PUUID)
+}
+
 func TestSummonerNotFound(t *testing.T) {
 	repo := NewSummoners(testPool(t))
 
