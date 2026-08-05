@@ -1,6 +1,5 @@
-/.claude/
 
-# Секреты — только через .env, никогда в git (CLAUDE.md, «Конвенции»)
+# Секреты — только через .env, никогда в git (DECISIONS.md, «Конвенции»)
 .env
 .env.*
 !.env.example

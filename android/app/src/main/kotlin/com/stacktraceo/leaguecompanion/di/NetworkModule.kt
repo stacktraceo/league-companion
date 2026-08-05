@@ -49,7 +49,7 @@ object NetworkModule {
                 HttpLoggingInterceptor().apply {
                     level = HttpLoggingInterceptor.Level.BODY
                     // Иначе общий секрет уехал бы в logcat при каждом запросе
-                    // (CLAUDE.md, «Конвенции»: секреты не печатаем в логи).
+                    // (DECISIONS.md, «Конвенции»: секреты не печатаем в логи).
                     redactHeader(ApiKeyInterceptor.HEADER)
                 }
             builder.addInterceptor(logging)

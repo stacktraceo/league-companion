@@ -78,7 +78,7 @@ func (r *Matches) KnownIDs(ctx context.Context, ids []string) (map[string]struct
 
 // Insert сохраняет матч и участие отслеживаемых саммонеров.
 //
-// Обе вставки идут через ON CONFLICT DO NOTHING (CLAUDE.md, отклонение 2):
+// Обе вставки идут через ON CONFLICT DO NOTHING (DECISIONS.md, отклонение 2):
 // один матч может прийти сразу из нескольких параллельных синхронизаций, если в нём
 // встретились двое отслеживаемых. Транзакция обязательна — match_participants
 // ссылается на matches внешним ключом.
@@ -232,7 +232,7 @@ func (r *Matches) CountByPUUID(ctx context.Context, puuid string) (int, error) {
 }
 
 // RawByID отдаёт исходный JSON Match-V5 — из него собираются полные детали матча
-// со всеми десятью участниками (CLAUDE.md, отклонение 1).
+// со всеми десятью участниками (DECISIONS.md, отклонение 1).
 func (r *Matches) RawByID(ctx context.Context, matchID string) (json.RawMessage, error) {
 	var raw []byte
 

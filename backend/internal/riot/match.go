@@ -60,7 +60,7 @@ func (c *Client) GetMatchIDsByPUUID(ctx context.Context, region, puuid string, s
 
 // GetMatch возвращает детали матча вместе с исходным JSON.
 //
-// Сырое тело кладётся в matches.raw_data (CLAUDE.md, отклонение 1), поэтому
+// Сырое тело кладётся в matches.raw_data (DECISIONS.md, отклонение 1), поэтому
 // возвращается всегда, а не только когда о нём попросили.
 func (c *Client) GetMatch(ctx context.Context, region, matchID string) (*MatchDetail, error) {
 	if matchID == "" {

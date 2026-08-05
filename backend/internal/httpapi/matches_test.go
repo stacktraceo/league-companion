@@ -11,7 +11,7 @@ import (
 
 // rawMatch — фрагмент ответа Match-V5 в том виде, в каком он лежит в matches.raw_data.
 // Поля вроде item0 и summoner1Id в наши DTO не попадают — и именно поэтому эндпоинт
-// отдаёт сырой JSON (CLAUDE.md, отклонение 1).
+// отдаёт сырой JSON (DECISIONS.md, отклонение 1).
 const rawMatch = `{"metadata":{"matchId":"EUW1_7","participants":["p1","p2"]},` +
 	`"info":{"gameDuration":1500,"participants":[{"puuid":"p1","championName":"Ahri","item0":3157},` +
 	`{"puuid":"p2","championName":"Zed","summoner1Id":4}]}}`

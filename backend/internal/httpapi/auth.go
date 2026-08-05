@@ -9,7 +9,7 @@ import (
 )
 
 // apiKeyHeader — заголовок shared secret между Android-клиентом и бэкендом
-// (CLAUDE.md, отклонение 3).
+// (DECISIONS.md, отклонение 3).
 const apiKeyHeader = "X-API-Key"
 
 // APIKeyAuth проверяет X-API-Key на всех запросах, которые через него проходят.

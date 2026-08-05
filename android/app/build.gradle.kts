@@ -11,7 +11,7 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-// Адрес бэкенда и общий секрет не хардкодятся (CLAUDE.md, «Отклонения», п. 3):
+// Адрес бэкенда и общий секрет не хардкодятся (DECISIONS.md, «Отклонения», п. 3):
 // значения берутся из local.properties (не коммитится) или из переменных окружения —
 // последнее нужно CI, где local.properties нет.
 val localProperties =

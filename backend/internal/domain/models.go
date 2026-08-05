@@ -45,7 +45,7 @@ type Match struct {
 	GameVersion  string
 
 	// RawData — исходный JSON Match-V5, ложится в matches.raw_data
-	// (CLAUDE.md, отклонение 1).
+	// (DECISIONS.md, отклонение 1).
 	RawData json.RawMessage
 }
 

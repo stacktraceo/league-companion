@@ -1,4 +1,4 @@
-# Гейт из CLAUDE.md, «Конвенции»: gofmt, go vet, golangci-lint, тесты.
+# Гейт из DECISIONS.md, «Конвенции»: gofmt, go vet, golangci-lint, тесты.
 # До этого workflow он держался только на дисциплине — ничто его не енфорсило.
 name: CI
 

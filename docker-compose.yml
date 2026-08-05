@@ -55,7 +55,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      # /healthz живёт вне /api/v1 и не требует X-API-Key (CLAUDE.md, отклонение 3).
+      # /healthz живёт вне /api/v1 и не требует X-API-Key (DECISIONS.md, отклонение 3).
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
       interval: 10s
       timeout: 5s

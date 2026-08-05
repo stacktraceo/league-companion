@@ -25,7 +25,7 @@ func NewSummoners(pool *pgxpool.Pool) *Summoners {
 // Upsert создаёт или обновляет запись саммонера и возвращает её в том виде,
 // в каком она теперь лежит в базе, вместе с признаком «создана впервые».
 //
-// Здесь именно DO UPDATE, а не DO NOTHING из CLAUDE.md (отклонение 2): то правило
+// Здесь именно DO UPDATE, а не DO NOTHING из DECISIONS.md (отклонение 2): то правило
 // про matches и match_participants, где повторная вставка означает гонку двух
 // синхронизаций. Повторное же добавление саммонера обязано подтянуть свежие уровень
 // и иконку, иначе профиль замрёт на значениях первого дня.
@@ -150,7 +150,7 @@ func (r *Summoners) All(ctx context.Context) ([]domain.Summoner, error) {
 // TrackedPUUIDs — множество отслеживаемых puuid.
 //
 // Нужно синхронизации: на match_participants стоит FK на summoners, поэтому строки
-// заводятся только для тех, кого мы трекаем (CLAUDE.md, отклонение 1). Заодно это
+// заводятся только для тех, кого мы трекаем (DECISIONS.md, отклонение 1). Заодно это
 // покрывает случай, когда в одном матче встретились двое отслеживаемых.
 func (r *Summoners) TrackedPUUIDs(ctx context.Context) (map[string]struct{}, error) {
 	rows, err := r.pool.Query(ctx, `SELECT puuid FROM summoners`)

@@ -94,7 +94,7 @@ func TestCacheKeyIncludesHostPathAndQuery(t *testing.T) {
 	other.host = "americas.api.riotgames.com"
 	assert.NotEqual(t, base.cacheKey(), other.cacheKey())
 
-	// Ключ Riot в кэш не попадает ни при каких условиях (CLAUDE.md, «Конвенции»).
+	// Ключ Riot в кэш не попадает ни при каких условиях (DECISIONS.md, «Конвенции»).
 	assert.NotContains(t, withQuery.cacheKey(), testAPIKey)
 }
 

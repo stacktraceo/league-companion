@@ -274,7 +274,7 @@ func TestMatchInsertIsIdempotent(t *testing.T) {
 }
 
 // Двое отслеживаемых саммонеров могут встретиться в одном матче и синхронизироваться
-// параллельно (CLAUDE.md, отклонение 2): матч не дублируется, участие добавляется.
+// параллельно (DECISIONS.md, отклонение 2): матч не дублируется, участие добавляется.
 func TestMatchInsertAddsSecondTrackedParticipant(t *testing.T) {
 	pool := testPool(t)
 	summoners := NewSummoners(pool)

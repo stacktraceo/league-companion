@@ -165,7 +165,7 @@ func (s *Service) SyncMatches(ctx context.Context, summoner domain.Summoner, cou
 	}
 
 	// На match_participants стоит FK на summoners, поэтому чужие участники
-	// в таблицу всё равно не лягут (CLAUDE.md, отклонение 1).
+	// в таблицу всё равно не лягут (DECISIONS.md, отклонение 1).
 	tracked, err := s.summoners.TrackedPUUIDs(ctx)
 	if err != nil {
 		return 0, err

@@ -114,7 +114,7 @@ func TestTickerRunOnceQueuesEveryTrackedSummoner(t *testing.T) {
 	assert.ElementsMatch(t, tracked.puuids, queue.Accepted())
 }
 
-// Guard от наложения (CLAUDE.md, отклонение 4): пока предыдущий прогон не завершён,
+// Guard от наложения (DECISIONS.md, отклонение 4): пока предыдущий прогон не завершён,
 // следующий тик пропускается, а не встаёт в очередь.
 func TestTickerSkipsTickWhileRunning(t *testing.T) {
 	tracked := &fakeTracked{puuids: []string{"puuid-1"}}
@@ -294,7 +294,7 @@ func TestTickerStopsOnContextCancel(t *testing.T) {
 //
 // Регрессия, найденная живой проверкой: time.Ticker буферизует один тик, поэтому тик,
 // случившийся во время долгого прогона, дожидался его конца и немедленно запускал
-// второй прогон — то самое «встаёт в очередь», которого CLAUDE.md (отклонение 4)
+// второй прогон — то самое «встаёт в очередь», которого DECISIONS.md (отклонение 4)
 // велит не допускать.
 //
 // Различает случаи именно пауза между прогонами: со сбросом накопленного тика она

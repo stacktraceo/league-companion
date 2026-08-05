@@ -213,7 +213,7 @@ func TestGetMatch(t *testing.T) {
 }
 
 // Сырой JSON обязан сохраняться байт-в-байт: из него наполняется matches.raw_data,
-// и в нём должны остаться поля, которых нет в DTO (CLAUDE.md, отклонение 1).
+// и в нём должны остаться поля, которых нет в DTO (DECISIONS.md, отклонение 1).
 func TestGetMatchPreservesRawJSON(t *testing.T) {
 	raw := fixture(t, "match.json")
 	client := newTestClient(t, jsonHandler(t, raw, nil))

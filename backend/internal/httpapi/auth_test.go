@@ -76,7 +76,7 @@ func TestAPIKeyAcceptsValidKey(t *testing.T) {
 }
 
 // Health-check обязан работать без секрета: его дёргают docker-compose и мониторинг
-// (CLAUDE.md, отклонение 3).
+// (DECISIONS.md, отклонение 3).
 func TestHealthzDoesNotRequireAPIKey(t *testing.T) {
 	router := newTestRouter(t, testDeps())
 

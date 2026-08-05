@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  *
  * Единственное место, где клиент разбирает схему **Riot**, а не зеркало
  * `backend/internal/httpapi/dto.go`: `GET /api/v1/matches/{matchId}` отдаёт
- * `matches.raw_data` без пересборки (CLAUDE.md, отклонение 1).
+ * `matches.raw_data` без пересборки (DECISIONS.md, отклонение 1).
  *
  * У участника в реальном ответе 155 полей — объявлены те, что показывает экран;
  * остальные молча отбрасывает `ignoreUnknownKeys` из `NetworkModule`. Добавить

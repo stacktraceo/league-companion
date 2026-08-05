@@ -48,7 +48,7 @@ const (
 // Время жизни закэшированных ответов.
 //
 // Детали матча не кэшируются осознанно: они неизменяемы, весят сотни килобайт и
-// целиком ложатся в matches.raw_data (CLAUDE.md, отклонение 1) — Postgres и есть
+// целиком ложатся в matches.raw_data (DECISIONS.md, отклонение 1) — Postgres и есть
 // их кэш, дублировать его в Redis незачем.
 const (
 	accountTTL  = 24 * time.Hour
@@ -113,7 +113,7 @@ type request struct {
 }
 
 // cacheKey однозначно определяет ответ. Ключ Riot сюда не попадает: он живёт
-// в заголовке, а не в URL (CLAUDE.md, «Конвенции»).
+// в заголовке, а не в URL (DECISIONS.md, «Конвенции»).
 func (r request) cacheKey() string {
 	key := r.host + r.path
 	if len(r.query) > 0 {

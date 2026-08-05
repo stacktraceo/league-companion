@@ -25,7 +25,7 @@ type Deps struct {
 	Logger *slog.Logger
 	DB     Pinger
 
-	// ClientAPIKey — shared secret для заголовка X-API-Key (CLAUDE.md, отклонение 3).
+	// ClientAPIKey — shared secret для заголовка X-API-Key (DECISIONS.md, отклонение 3).
 	ClientAPIKey string
 
 	Profiles  ProfileSyncer
@@ -42,7 +42,7 @@ type Deps struct {
 // NewRouter собирает роутер бэкенда.
 //
 // /healthz намеренно живёт вне /api/v1: проверка X-API-Key вешается только на
-// /api/v1/* (CLAUDE.md, отклонение 3), иначе мониторингу и docker-compose
+// /api/v1/* (DECISIONS.md, отклонение 3), иначе мониторингу и docker-compose
 // пришлось бы знать секрет.
 func NewRouter(deps Deps) *chi.Mux {
 	now := deps.Now

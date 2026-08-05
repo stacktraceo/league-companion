@@ -6,7 +6,7 @@ import "encoding/json"
 // в пакете domain, чтобы форма чужого API не протекала дальше клиента.
 //
 // Для MVP парсим только поля из SPEC.md 7 (KDA, CS, чемпион, золото); всё
-// остальное остаётся доступным через raw JSON матча (CLAUDE.md, отклонение 1).
+// остальное остаётся доступным через raw JSON матча (DECISIONS.md, отклонение 1).
 
 // AccountDTO — ответ Account-V1 /riot/account/v1/accounts/by-riot-id/{name}/{tag}.
 type AccountDTO struct {
@@ -92,7 +92,7 @@ func (p ParticipantDTO) CS() int {
 
 // MatchDetail — распарсенный матч вместе с исходным JSON.
 //
-// Raw кладётся в matches.raw_data (CLAUDE.md, отклонение 1): расширение набора
+// Raw кладётся в matches.raw_data (DECISIONS.md, отклонение 1): расширение набора
 // полей в будущем не должно требовать повторных запросов к Riot.
 type MatchDetail struct {
 	Match MatchDTO

@@ -1,7 +1,7 @@
 // Package config читает конфигурацию сервиса из переменных окружения.
 //
 // Секреты (RIOT_API_KEY, CLIENT_API_KEY, пароль в DATABASE_URL) не попадают
-// в логи: Config реализует slog.LogValuer и редактирует их (CLAUDE.md, «Конвенции»).
+// в логи: Config реализует slog.LogValuer и редактирует их (DECISIONS.md, «Конвенции»).
 package config
 
 import (
@@ -46,7 +46,7 @@ type Config struct {
 	HTTPPort int
 
 	// ClientAPIKey — shared secret между Android-клиентом и бэкендом,
-	// проверяется middleware в заголовке X-API-Key (CLAUDE.md, отклонение 3).
+	// проверяется middleware в заголовке X-API-Key (DECISIONS.md, отклонение 3).
 	ClientAPIKey string
 
 	// SyncInterval — как часто просыпается фоновая синхронизация (SPEC.md 3.5).

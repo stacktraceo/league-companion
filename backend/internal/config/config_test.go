@@ -149,7 +149,7 @@ func TestLogLevelAliases(t *testing.T) {
 	}
 }
 
-// Ключевая проверка требования CLAUDE.md: секреты не должны утекать в логи.
+// Ключевая проверка требования DECISIONS.md: секреты не должны утекать в логи.
 func TestLogValueRedactsSecrets(t *testing.T) {
 	setRequired(t)
 	clearOptional(t)
