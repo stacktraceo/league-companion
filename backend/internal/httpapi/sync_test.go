@@ -15,7 +15,6 @@ import (
 
 const syncPath = "/api/v1/summoners/" + testPUUID + "/sync"
 
-// syncDeps подкладывает саммонера с заданной отметкой последней синхронизации.
 func syncDeps(lastSyncedAt *time.Time) Deps {
 	deps := testDeps()
 
@@ -26,7 +25,6 @@ func syncDeps(lastSyncedAt *time.Time) Deps {
 	return deps
 }
 
-// Саммонер, которого ещё не синхронизировали, ждать не должен.
 func TestForceSyncQueuesNeverSyncedSummoner(t *testing.T) {
 	deps := syncDeps(nil)
 	queue := deps.Queue.(*fakeQueue)
@@ -58,7 +56,6 @@ func TestForceSyncQueuesAfterCooldown(t *testing.T) {
 	assert.Equal(t, []string{testPUUID}, queue.enqueued)
 }
 
-// SPEC.md 3.4: принудительная синхронизация не чаще раза в N минут.
 func TestForceSyncRejectsWithinCooldown(t *testing.T) {
 	synced := testNow.Add(-30 * time.Second)
 	deps := syncDeps(&synced)
@@ -72,8 +69,6 @@ func TestForceSyncRejectsWithinCooldown(t *testing.T) {
 	assert.Empty(t, queue.enqueued, "в очередь ставить нельзя")
 }
 
-// Retry-After округляется вверх: просить подождать 0 секунд, когда осталось меньше
-// секунды, — врать клиенту.
 func TestForceSyncRetryAfterRoundsUp(t *testing.T) {
 	synced := testNow.Add(-manualSyncCooldown + 200*time.Millisecond)
 	rec := call(t, syncDeps(&synced), http.MethodPost, syncPath, "")
@@ -85,7 +80,6 @@ func TestForceSyncRetryAfterRoundsUp(t *testing.T) {
 	assert.Equal(t, 1, retryAfter)
 }
 
-// Граница: ровно cooldown назад — уже можно.
 func TestForceSyncAcceptsExactlyAtCooldownBoundary(t *testing.T) {
 	synced := testNow.Add(-manualSyncCooldown)
 
@@ -93,8 +87,6 @@ func TestForceSyncAcceptsExactlyAtCooldownBoundary(t *testing.T) {
 	assert.Equal(t, http.StatusAccepted, rec.Code, "тело: %s", rec.Body.String())
 }
 
-// Переполненная очередь означает, что запрос ничего не сделал — в отличие от
-// POST /summoners, где профиль уже сохранён.
 func TestForceSyncReportsFullQueue(t *testing.T) {
 	deps := syncDeps(nil)
 	deps.Queue = &fakeQueue{reject: true}
@@ -116,7 +108,6 @@ func TestForceSyncReturns500OnStorageFailure(t *testing.T) {
 	requireErrorCode(t, rec, http.StatusInternalServerError, "internal_error")
 }
 
-// Просим ровно столько матчей, сколько тянет фоновая синхронизация.
 func TestForceSyncUsesDefaultMatchCount(t *testing.T) {
 	deps := syncDeps(nil)
 	queue := &countingQueue{}

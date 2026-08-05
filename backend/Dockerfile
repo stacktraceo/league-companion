@@ -4,14 +4,14 @@ FROM golang:1.25-alpine AS build
 
 WORKDIR /src
 
-# Зависимости — отдельным слоем: он пересобирается только при изменении
+# Зависимости - отдельным слоем: он пересобирается только при изменении
 # go.mod/go.sum, а не на каждую правку кода.
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-# CGO_ENABLED=0 даёт статический бинарь — рантайм-образу не нужен ни libc, ни Go.
+# CGO_ENABLED=0 даёт статический бинарь - рантайм-образу не нужен ни libc, ни Go.
 # Миграции вшиты через //go:embed (internal/storage/migrate.go), поэтому *.sql
 # отдельно в образ не кладём и CLI migrate внутри не требуется.
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server

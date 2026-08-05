@@ -3,7 +3,7 @@
     <!--
       Тему рисует Compose (Material 3), платформенной нужно лишь убрать ActionBar
       и задать фон до первого кадра. Поэтому зависимости на com.google.android.material
-      в проекте нет — она бы тянулась только ради этой строки.
+      в проекте нет - она бы тянулась только ради этой строки.
     -->
     <style name="Theme.LeagueCompanion" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/background</item>

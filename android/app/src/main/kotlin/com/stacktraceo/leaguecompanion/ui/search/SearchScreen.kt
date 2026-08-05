@@ -41,7 +41,6 @@ import com.stacktraceo.leaguecompanion.domain.model.Summoner
 import com.stacktraceo.leaguecompanion.ui.components.EmptyState
 import com.stacktraceo.leaguecompanion.ui.error.asText
 
-/** Экран поиска по SPEC.md 4.2, пункт 1, плюс список уже отслеживаемых саммонеров. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
@@ -160,7 +159,7 @@ private fun RegionPicker(
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             Region.entries.forEach { region ->
                 DropdownMenuItem(
-                    text = { Text("${region.code.uppercase()} — ${region.label}") },
+                    text = { Text("${region.code.uppercase()} - ${region.label}") },
                     onClick = {
                         onSelect(region)
                         expanded = false

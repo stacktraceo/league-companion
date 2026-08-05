@@ -14,15 +14,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object ImageModule {
-    /**
-     * Загрузчик картинок собирается на **своём** OkHttp-клиенте, а не на общем.
-     *
-     * Общий несёт `ApiKeyInterceptor`, который вешает `X-API-Key` на каждый запрос.
-     * Иконки лежат на CDN Riot, то есть переиспользование клиента отправляло бы
-     * общий секрет бэкенда третьей стороне при каждой картинке — DECISIONS.md,
-     * «Конвенции»: секреты не уходят наружу. Клиент указан явно, а не оставлен на
-     * умолчание Coil, чтобы это решение было видно в коде.
-     */
     @Provides
     @Singleton
     fun provideImageLoader(

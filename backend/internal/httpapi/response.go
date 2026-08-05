@@ -6,16 +6,11 @@ import (
 	"net/http"
 )
 
-// ErrorResponse — единый формат ошибок API (SPEC.md 3.4).
-//
-// Поля stale здесь нет намеренно: когда сохранённый снапшот есть, он уходит со
-// статусом 200 (см. respondStale), а ошибкой отвечаем только когда отдавать нечего.
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
 }
 
-// respondJSON сериализует payload и отдаёт его со статусом status.
 func respondJSON(w http.ResponseWriter, r *http.Request, logger *slog.Logger, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -25,13 +20,11 @@ func respondJSON(w http.ResponseWriter, r *http.Request, logger *slog.Logger, st
 	}
 
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
-		// Статус уже ушёл в сеть — остаётся только записать это в лог.
+		// Статус уже ушёл в сеть - остаётся только записать это в лог.
 		logger.ErrorContext(r.Context(), "не удалось сериализовать ответ", "error", err)
 	}
 }
 
-// respondRawJSON отдаёт готовый JSON без пересериализации — так сырой ответ
-// Match-V5 доходит до клиента ровно в том виде, в каком его прислал Riot.
 func respondRawJSON(w http.ResponseWriter, r *http.Request, logger *slog.Logger, status int, payload []byte) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -41,7 +34,6 @@ func respondRawJSON(w http.ResponseWriter, r *http.Request, logger *slog.Logger,
 	}
 }
 
-// respondError отдаёт ошибку в едином формате.
 func respondError(w http.ResponseWriter, r *http.Request, logger *slog.Logger, status int, code, message string) {
 	respondJSON(w, r, logger, status, ErrorResponse{Error: code, Message: message})
 }

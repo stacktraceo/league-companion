@@ -29,7 +29,7 @@ const (
 var (
 	testCreatedAt = time.Date(2026, 7, 29, 10, 0, 0, 0, time.UTC)
 
-	// testNow — подменённые «сейчас» для границы периода в /stats и cooldown /sync.
+	// testNow - подменённые «сейчас» для границы периода в /stats и cooldown /sync.
 	testNow = time.Date(2026, 7, 29, 12, 0, 0, 0, time.UTC)
 )
 
@@ -83,7 +83,6 @@ func (f *fakeQueue) Enqueue(puuid string, _ int) bool {
 	return true
 }
 
-// countingQueue запоминает, сколько матчей попросил загрузить хендлер.
 type countingQueue struct {
 	count int
 	calls int
@@ -114,8 +113,6 @@ func (f *fakeSummoners) ByPUUID(_ context.Context, puuid string) (domain.Summone
 	return summoner, nil
 }
 
-// ByRiotID ищет по тем же полям, что настоящий запрос, и так же без учёта регистра —
-// иначе подделка не поймала бы, что хендлер передаёт введённое пользователем имя.
 func (f *fakeSummoners) ByRiotID(_ context.Context, region, gameName, tagLine string) (domain.Summoner, error) {
 	if f.err != nil {
 		return domain.Summoner{}, f.err
@@ -149,7 +146,7 @@ type fakeMatches struct {
 	items map[string][]storage.MatchListItem
 	raw   map[string]json.RawMessage
 
-	// participations — вход агрегации; отдельно от items, потому что тесты
+	// participations - вход агрегации; отдельно от items, потому что тесты
 	// статистики задают K/D/A, а не строки ленты.
 	participations map[string][]domain.MatchParticipant
 
@@ -254,8 +251,6 @@ func newFakeMatches() *fakeMatches {
 	}
 }
 
-// matchItems собирает n матчей, от свежего к старому — в том же порядке,
-// в каком их отдаёт ListByPUUID.
 func matchItems(n int) []storage.MatchListItem {
 	items := make([]storage.MatchListItem, 0, n)
 
@@ -267,7 +262,6 @@ func matchItems(n int) []storage.MatchListItem {
 	return items
 }
 
-// testDeps — работоспособный набор зависимостей; тест меняет только нужное ему.
 func testDeps() Deps {
 	return Deps{
 		Logger:       testLogger(),
@@ -288,7 +282,6 @@ func newTestRouter(t *testing.T, deps Deps) *chi.Mux {
 	return NewRouter(deps)
 }
 
-// newHealthRouter собирает роутер для тестов, которым важен только /healthz.
 func newHealthRouter(t *testing.T, db Pinger) *chi.Mux {
 	t.Helper()
 
@@ -298,8 +291,6 @@ func newHealthRouter(t *testing.T, db Pinger) *chi.Mux {
 	return NewRouter(deps)
 }
 
-// authRequest собирает запрос с валидным X-API-Key: без него любой тест хендлера
-// упёрся бы в 401.
 func authRequest(method, path, body string) *http.Request {
 	var reader io.Reader
 	if body != "" {
@@ -316,7 +307,6 @@ func authRequest(method, path, body string) *http.Request {
 	return request
 }
 
-// call выполняет авторизованный запрос и возвращает ответ.
 func call(t *testing.T, deps Deps, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 
@@ -326,7 +316,6 @@ func call(t *testing.T, deps Deps, method, path, body string) *httptest.Response
 	return rec
 }
 
-// decodeBody разбирает тело ответа в target.
 func decodeBody[T any](t *testing.T, rec *httptest.ResponseRecorder) T {
 	t.Helper()
 
@@ -336,7 +325,6 @@ func decodeBody[T any](t *testing.T, rec *httptest.ResponseRecorder) T {
 	return target
 }
 
-// requireErrorCode проверяет статус и машинный код ошибки.
 func requireErrorCode(t *testing.T, rec *httptest.ResponseRecorder, status int, code string) ErrorResponse {
 	t.Helper()
 

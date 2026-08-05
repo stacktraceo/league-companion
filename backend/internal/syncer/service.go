@@ -1,7 +1,3 @@
-// Package syncer синхронизирует данные саммонера из Riot API в PostgreSQL.
-//
-// Сервис ничего не знает про HTTP: его дёргают и хендлер добавления саммонера,
-// и фоновый воркер (SPEC.md 3.5).
 package syncer
 
 import (
@@ -15,10 +11,8 @@ import (
 	"github.com/stacktraceo/league-companion/backend/internal/riot"
 )
 
-// DefaultMatchCount — сколько последних матчей тянуть за один прогон.
 const DefaultMatchCount = riot.DefaultMatchIDCount
 
-// RiotClient — то, что синхронизации нужно от клиента Riot.
 type RiotClient interface {
 	GetAccountByRiotID(ctx context.Context, region, gameName, tagLine string) (*riot.AccountDTO, error)
 	GetSummonerByPUUID(ctx context.Context, region, puuid string) (*riot.SummonerDTO, error)
@@ -27,7 +21,6 @@ type RiotClient interface {
 	GetMatch(ctx context.Context, region, matchID string) (*riot.MatchDetail, error)
 }
 
-// SummonerRepo — хранилище саммонеров.
 type SummonerRepo interface {
 	// Upsert возвращает сохранённую строку и true, если саммонер добавлен впервые.
 	Upsert(ctx context.Context, summoner domain.Summoner) (domain.Summoner, bool, error)
@@ -36,18 +29,15 @@ type SummonerRepo interface {
 	MarkSynced(ctx context.Context, puuid string, at time.Time) error
 }
 
-// RankedRepo — хранилище ранговых снапшотов.
 type RankedRepo interface {
 	Replace(ctx context.Context, puuid string, stats []domain.RankedStat) error
 }
 
-// MatchRepo — хранилище матчей.
 type MatchRepo interface {
 	KnownIDs(ctx context.Context, ids []string) (map[string]struct{}, error)
 	Insert(ctx context.Context, match domain.Match, participants []domain.MatchParticipant) error
 }
 
-// Service синхронизирует одного саммонера.
 type Service struct {
 	riot      RiotClient
 	summoners SummonerRepo
@@ -59,7 +49,6 @@ type Service struct {
 	now func() time.Time
 }
 
-// NewService собирает сервис синхронизации из клиента Riot и репозиториев.
 func NewService(
 	client RiotClient,
 	summoners SummonerRepo,
@@ -77,13 +66,6 @@ func NewService(
 	}
 }
 
-// SyncProfile резолвит Riot ID в PUUID и сохраняет профиль с рангами.
-// Второе значение — true, если саммонер добавлен впервые.
-//
-// Возвращается сохранённая строка, а не собранная из ответа Riot: created_at
-// и last_synced_at знает только база.
-//
-// Три запроса к Riot: Account-V1 (regional), Summoner-V4 и League-V4 (platform).
 func (s *Service) SyncProfile(
 	ctx context.Context,
 	region, gameName, tagLine string,
@@ -108,11 +90,6 @@ func (s *Service) SyncProfile(
 	return stored, created, nil
 }
 
-// syncRanks обновляет ранговый снапшот.
-//
-// Ошибка League-V4 намеренно не роняет добавление саммонера: профиль — то, ради
-// чего пользователь пришёл, а ранг подтянется следующей синхронизацией. Пустой
-// список рангов — валидный ответ для безрангового игрока, а не сбой.
 func (s *Service) syncRanks(ctx context.Context, summoner domain.Summoner) {
 	entries, err := s.riot.GetLeagueEntriesByPUUID(ctx, summoner.Region, summoner.PUUID)
 	if err != nil {
@@ -129,12 +106,6 @@ func (s *Service) syncRanks(ctx context.Context, summoner domain.Summoner) {
 	}
 }
 
-// SyncSummoner подтягивает новые матчи саммонера и обновляет его ранговый снапшот.
-//
-// Ранги здесь обязательны: это единственный путь, которым ходит фон (SPEC.md 3.5,
-// пункт 4). Без них LP и тир замерли бы на значениях момента добавления, потому что
-// League-V4 дёргается ещё только в SyncProfile. Лишним запросом это почти не выходит:
-// ответ League-V4 кэшируется на 5 минут.
 func (s *Service) SyncSummoner(ctx context.Context, puuid string, count int) (int, error) {
 	summoner, err := s.summoners.ByPUUID(ctx, puuid)
 	if err != nil {
@@ -146,7 +117,6 @@ func (s *Service) SyncSummoner(ctx context.Context, puuid string, count int) (in
 	return s.SyncMatches(ctx, summoner, count)
 }
 
-// SyncMatches сохраняет матчи саммонера, которых ещё нет в БД, и возвращает их число.
 func (s *Service) SyncMatches(ctx context.Context, summoner domain.Summoner, count int) (int, error) {
 	if count <= 0 {
 		count = DefaultMatchCount
@@ -157,7 +127,7 @@ func (s *Service) SyncMatches(ctx context.Context, summoner domain.Summoner, cou
 		return 0, fmt.Errorf("список матчей: %w", err)
 	}
 
-	// Детали матча весят ~140 КБ; перекачивать уже сохранённые — впустую жечь
+	// Детали матча весят ~140 КБ; перекачивать уже сохранённые - впустую жечь
 	// лимит ключа.
 	known, err := s.matches.KnownIDs(ctx, ids)
 	if err != nil {
@@ -222,8 +192,6 @@ func (s *Service) syncMatch(ctx context.Context, region, matchID string, tracked
 	return s.matches.Insert(ctx, match, trackedOnly(participants, tracked))
 }
 
-// trackedOnly оставляет участие только тех, кого мы отслеживаем. Полный состав
-// обеих команд остаётся доступен из matches.raw_data.
 func trackedOnly(participants []domain.MatchParticipant, tracked map[string]struct{}) []domain.MatchParticipant {
 	filtered := make([]domain.MatchParticipant, 0, len(tracked))
 

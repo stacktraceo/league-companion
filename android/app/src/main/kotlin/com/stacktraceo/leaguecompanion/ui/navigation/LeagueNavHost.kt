@@ -12,13 +12,6 @@ import com.stacktraceo.leaguecompanion.ui.search.SearchScreen
 import com.stacktraceo.leaguecompanion.ui.stats.StatsScreen
 import com.stacktraceo.leaguecompanion.ui.summoner.SummonerScreen
 
-/**
- * Стартовый экран — поиск, и он же список отслеживаемых.
- *
- * Иначе после перезапуска к сохранённому саммонеру нет пути: экран профиля знает
- * только свой puuid, а взять его неоткуда. Список уже отслеживаемых на экране
- * поиска решает это без отдельного «главного» экрана.
- */
 @Composable
 fun LeagueNavHost(
     modifier: Modifier = Modifier,
@@ -36,7 +29,7 @@ fun LeagueNavHost(
         composable<SummonerRoute> { entry ->
             // Здесь toRoute() уместен: это композиция, а не ViewModel, и Bundle
             // на устройстве есть. В ViewModel'ях аргументы читаются по имени
-            // свойства — иначе их нельзя было бы проверить JVM-тестом.
+            // свойства - иначе их нельзя было бы проверить JVM-тестом.
             val puuid = entry.toRoute<SummonerRoute>().puuid
 
             SummonerScreen(

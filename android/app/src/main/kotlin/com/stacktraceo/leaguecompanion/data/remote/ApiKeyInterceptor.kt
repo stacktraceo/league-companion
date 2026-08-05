@@ -5,13 +5,6 @@ import okhttp3.Response
 import javax.inject.Inject
 import javax.inject.Named
 
-/**
- * Проставляет общий с бэкендом секрет (DECISIONS.md, «Отклонения», п. 3).
- *
- * Значение приходит из BuildConfig, а туда — из local.properties, поэтому в коде
- * и в git его нет. Пустой ключ не подставляем вовсе: пусть бэкенд ответит `401`,
- * который мы покажем как «проверь настройку», а не как невнятную ошибку.
- */
 class ApiKeyInterceptor
     @Inject
     constructor(

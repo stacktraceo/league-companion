@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// protectedRoutes — все маршруты под /api/v1: middleware обязан закрывать группу
-// целиком, а не только тот эндпоинт, на котором её проверили руками.
 func protectedRoutes() []struct {
 	method string
 	path   string
@@ -50,7 +48,7 @@ func TestAPIKeyRejectsRequestWithoutHeader(t *testing.T) {
 func TestAPIKeyRejectsWrongKey(t *testing.T) {
 	router := newTestRouter(t, testDeps())
 
-	// Префикс правильного ключа — самый интересный случай: именно на нём обычное
+	// Префикс правильного ключа - самый интересный случай: именно на нём обычное
 	// сравнение по байтам выдало бы длину совпадения через время ответа.
 	for _, key := range []string{"", "другой-секрет", testAPIKey[:len(testAPIKey)-2], testAPIKey + "x"} {
 		request := httptest.NewRequest(http.MethodGet, "/api/v1/summoners/"+testPUUID, nil)
@@ -75,8 +73,6 @@ func TestAPIKeyAcceptsValidKey(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-// Health-check обязан работать без секрета: его дёргают docker-compose и мониторинг
-// (DECISIONS.md, отклонение 3).
 func TestHealthzDoesNotRequireAPIKey(t *testing.T) {
 	router := newTestRouter(t, testDeps())
 
@@ -86,8 +82,6 @@ func TestHealthzDoesNotRequireAPIKey(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-// Неавторизованный запрос не должен доходить до хендлера — иначе через POST можно
-// было бы бесплатно жечь лимит Riot без ключа.
 func TestAPIKeyBlocksHandlerExecution(t *testing.T) {
 	deps := testDeps()
 	profiles := deps.Profiles.(*fakeProfiles)
@@ -103,7 +97,6 @@ func TestAPIKeyBlocksHandlerExecution(t *testing.T) {
 	assert.Zero(t, profiles.calls, "хендлер не должен был выполниться")
 }
 
-// Ключ не должен утечь ни в тело ответа, ни в заголовки.
 func TestAPIKeyIsNotLeakedInResponse(t *testing.T) {
 	router := newTestRouter(t, testDeps())
 

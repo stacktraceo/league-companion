@@ -13,10 +13,6 @@ import (
 	"github.com/stacktraceo/league-companion/backend/internal/domain"
 )
 
-// MatchListItem — строка ленты матчей: сам матч плюс участие саммонера в нём.
-//
-// Сырого JSON здесь намеренно нет: он весит сотни килобайт на матч и нужен только
-// в GET /api/v1/matches/{matchId}.
 type MatchListItem struct {
 	MatchID      string
 	GameCreation time.Time
@@ -33,20 +29,14 @@ type MatchListItem struct {
 	GoldEarned   int
 }
 
-// Matches — доступ к матчам и участию в них.
 type Matches struct {
 	pool *pgxpool.Pool
 }
 
-// NewMatches создаёт репозиторий матчей поверх пула соединений.
 func NewMatches(pool *pgxpool.Pool) *Matches {
 	return &Matches{pool: pool}
 }
 
-// KnownIDs возвращает подмножество ids, которое уже лежит в БД.
-//
-// Синхронизация спрашивает это до похода в Riot: детали матча весят ~140 КБ, и
-// перекачивать уже сохранённые — впустую жечь лимит ключа.
 func (r *Matches) KnownIDs(ctx context.Context, ids []string) (map[string]struct{}, error) {
 	known := make(map[string]struct{}, len(ids))
 
@@ -76,12 +66,6 @@ func (r *Matches) KnownIDs(ctx context.Context, ids []string) (map[string]struct
 	return known, nil
 }
 
-// Insert сохраняет матч и участие отслеживаемых саммонеров.
-//
-// Обе вставки идут через ON CONFLICT DO NOTHING (DECISIONS.md, отклонение 2):
-// один матч может прийти сразу из нескольких параллельных синхронизаций, если в нём
-// встретились двое отслеживаемых. Транзакция обязательна — match_participants
-// ссылается на matches внешним ключом.
 func (r *Matches) Insert(
 	ctx context.Context,
 	match domain.Match,
@@ -124,7 +108,6 @@ func (r *Matches) Insert(
 	return nil
 }
 
-// ListByPUUID возвращает ленту матчей саммонера, свежие первыми.
 func (r *Matches) ListByPUUID(ctx context.Context, puuid string, limit, offset int) ([]MatchListItem, error) {
 	const query = `
 		SELECT m.match_id, m.game_creation, m.game_duration, m.queue_id, m.game_version,
@@ -169,12 +152,6 @@ func (r *Matches) ListByPUUID(ctx context.Context, puuid string, limit, offset i
 	return items, nil
 }
 
-// ParticipationsSince отдаёт участия саммонера в матчах, начиная с since —
-// вход для агрегации статистики (SPEC.md 3.4).
-//
-// Возвращается доменный тип, а не read-model MatchListItem: агрегация живёт
-// в domain и не должна знать про storage. Пагинации здесь нет намеренно —
-// считать винрейт по части периода бессмысленно.
 func (r *Matches) ParticipationsSince(
 	ctx context.Context,
 	puuid string,
@@ -217,8 +194,6 @@ func (r *Matches) ParticipationsSince(
 	return participations, nil
 }
 
-// CountByPUUID — сколько всего матчей сохранено у саммонера. Нужно клиенту,
-// чтобы понимать границы пагинации.
 func (r *Matches) CountByPUUID(ctx context.Context, puuid string) (int, error) {
 	var total int
 
@@ -231,8 +206,6 @@ func (r *Matches) CountByPUUID(ctx context.Context, puuid string) (int, error) {
 	return total, nil
 }
 
-// RawByID отдаёт исходный JSON Match-V5 — из него собираются полные детали матча
-// со всеми десятью участниками (DECISIONS.md, отклонение 1).
 func (r *Matches) RawByID(ctx context.Context, matchID string) (json.RawMessage, error) {
 	var raw []byte
 

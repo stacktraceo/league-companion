@@ -7,14 +7,6 @@ import com.stacktraceo.leaguecompanion.R
 import java.time.Duration
 import java.time.Instant
 
-/**
- * «Сколько прошло» из SPEC.md 4.2 — разделено на чистую [ago] и отрисовку [asText].
- *
- * `DateUtils.getRelativeTimeSpanString` не подошёл по двум причинам: он берёт локаль
- * системы (в англоязычном интерфейсе получился бы русский текст на русском телефоне)
- * и требует Robolectric, то есть проверить границы «59 минут / 1 час» обычным
- * юнит-тестом было бы нельзя.
- */
 sealed interface Ago {
     data object JustNow : Ago
 
@@ -37,7 +29,7 @@ fun ago(
 ): Ago {
     val elapsed = Duration.between(moment, now)
 
-    // Отрицательная разница — не выдумка: часы устройства могут отставать от бэкенда,
+    // Отрицательная разница - не выдумка: часы устройства могут отставать от бэкенда,
     // и матч «из будущего» должен читаться как только что, а не как «-3 минуты назад».
     if (elapsed.isNegative || elapsed.toMinutes() < 1) return Ago.JustNow
 

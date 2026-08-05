@@ -62,7 +62,6 @@ func TestRankedStatsFromRiot(t *testing.T) {
 	assert.Equal(t, updatedAt, stats[1].UpdatedAt)
 }
 
-// Безранговый саммонер — валидный случай, а не ошибка.
 func TestRankedStatsFromRiotUnranked(t *testing.T) {
 	assert.Nil(t, RankedStatsFromRiot(testPUUID, nil, time.Now()))
 	assert.Nil(t, RankedStatsFromRiot(testPUUID, []riot.LeagueEntryDTO{}, time.Now()))
@@ -96,8 +95,6 @@ func TestMatchFromRiot(t *testing.T) {
 	assert.JSONEq(t, string(raw), string(match.RawData), "сырой JSON должен доехать до raw_data без изменений")
 }
 
-// Особенность Match-V5: у матчей старше патча 11.20 gameDuration в миллисекундах,
-// и отличить их можно только по отсутствию gameEndTimestamp.
 func TestMatchDurationHandlesPre1120Millis(t *testing.T) {
 	cases := []struct {
 		name             string
@@ -174,7 +171,7 @@ func TestMatchParticipantsFromRiot(t *testing.T) {
 
 	participants, err := MatchParticipantsFromRiot(detail)
 	require.NoError(t, err)
-	require.Len(t, participants, 2, "маппер отдаёт всех участников, фильтрация — на вызывающем")
+	require.Len(t, participants, 2, "маппер отдаёт всех участников, фильтрация - на вызывающем")
 
 	assert.Equal(t, MatchParticipant{
 		MatchID:      "EUW1_7000000001",

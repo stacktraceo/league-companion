@@ -20,7 +20,7 @@ class ApiErrorMapperTest {
 
     @Test
     fun `502 riot_unauthorized не путается с 401`() {
-        // Протухший 24-часовой ключ Riot — проблема бэкенда, а не настройки клиента
+        // Протухший 24-часовой ключ Riot - проблема бэкенда, а не настройки клиента
         // (backend/internal/httpapi/errors.go). Пользователю нужен другой текст.
         val error = mapper.map(httpException(502, """{"error":"riot_unauthorized","message":"Riot API отклонил ключ бэкенда"}"""))
 

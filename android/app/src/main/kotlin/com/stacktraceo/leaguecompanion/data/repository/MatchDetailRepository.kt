@@ -25,11 +25,6 @@ class MatchDetailRepository
         private val json: Json,
         private val errors: ApiErrorMapper,
     ) {
-        /**
-         * Разбор происходит на чтении, а не на записи: в кэше лежит тот же текст,
-         * что прислал бэкенд, и расширение набора полей не требует ни миграции, ни
-         * повторного запроса — ровно то же рассуждение, что у `raw_data` на бэкенде.
-         */
         fun observe(
             matchId: String,
             trackedPuuid: String,
@@ -41,11 +36,6 @@ class MatchDetailRepository
                 dao.upsert(MatchDetailEntity(matchId = matchId, rawData = raw, fetchedAt = Instant.now()))
             }
 
-        /**
-         * Битую строку кэша отдаём как «ничего нет», а не роняем поток: экран тогда
-         * просто уходит в загрузку, а следующий [refresh] перезаписывает строку.
-         * Исключение здесь убивало бы подписку, и починиться сам экран уже не смог бы.
-         */
         private fun parse(
             raw: String,
             trackedPuuid: String,

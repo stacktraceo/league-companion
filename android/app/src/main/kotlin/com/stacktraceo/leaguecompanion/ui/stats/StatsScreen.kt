@@ -40,7 +40,6 @@ import com.stacktraceo.leaguecompanion.ui.error.asText
 import com.stacktraceo.leaguecompanion.ui.format.formatKda
 import com.stacktraceo.leaguecompanion.ui.format.formatWinRate
 
-/** Статистика за период (SPEC.md 4.2, пункт 5). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsScreen(
@@ -71,7 +70,7 @@ fun StatsScreen(
                 errorText != null && stats == null ->
                     ErrorState(message = errorText, onRetry = viewModel::load)
 
-                // Ноль игр — это не ошибка и не пустой график: саммонер просто не
+                // Ноль игр - это не ошибка и не пустой график: саммонер просто не
                 // играл в этот период.
                 stats == null || stats.isEmpty -> EmptyState(message = stringResource(R.string.stats_empty))
 

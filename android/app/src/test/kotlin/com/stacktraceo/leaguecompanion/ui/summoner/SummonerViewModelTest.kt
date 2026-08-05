@@ -57,7 +57,7 @@ class SummonerViewModelTest {
         }
 
     @Test
-    fun `пустой кэш и упавшая сеть — ошибка без контента`() =
+    fun `пустой кэш и упавшая сеть - ошибка без контента`() =
         runTest {
             api.failure = IOException("бэкенд не поднят")
 
@@ -89,7 +89,7 @@ class SummonerViewModelTest {
 
             val state = viewModel.state.value
             assertEquals(AppError.NoNetwork, state.error)
-            // Главная гарантия офлайн-first: провал обновления — событие, а не
+            // Главная гарантия офлайн-first: провал обновления - событие, а не
             // повод очистить экран.
             assertTrue(state.hasContent)
             assertEquals(listOf("KR_1"), state.matches.map { it.matchId })
@@ -134,7 +134,7 @@ class SummonerViewModelTest {
             viewModel.loadMore()
             advanceUntilIdle()
 
-            // Первый запрос — стартовая страница, второй — со сдвигом на то, что уже лежит.
+            // Первый запрос - стартовая страница, второй - со сдвигом на то, что уже лежит.
             assertEquals(listOf(20 to 0, 20 to 2), api.matchRequests)
         }
 

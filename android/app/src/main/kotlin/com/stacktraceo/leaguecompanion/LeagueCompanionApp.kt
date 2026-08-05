@@ -11,7 +11,7 @@ import javax.inject.Inject
 class LeagueCompanionApp :
     Application(),
     SingletonImageLoader.Factory {
-    // Coil спрашивает загрузчик лениво, при первой картинке, — то есть уже после
+    // Coil спрашивает загрузчик лениво, при первой картинке, - то есть уже после
     // onCreate(), где Hilt заполняет поле.
     @Inject
     lateinit var imageLoader: ImageLoader

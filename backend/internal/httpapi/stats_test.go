@@ -11,7 +11,6 @@ import (
 	"github.com/stacktraceo/league-companion/backend/internal/domain"
 )
 
-// statsDeps подкладывает участия, по которым считается агрегация.
 func statsDeps(participations ...domain.MatchParticipant) Deps {
 	deps := testDeps()
 	matches := newFakeMatches()
@@ -56,7 +55,6 @@ func TestGetStatsAggregatesPeriod(t *testing.T) {
 	assert.Equal(t, 2, body.TopChampions[0].Games)
 }
 
-// Период по умолчанию — 30 дней от «сейчас» (SPEC.md 3.4).
 func TestGetStatsDefaultPeriod(t *testing.T) {
 	deps := statsDeps()
 	matches := deps.Matches.(*fakeMatches)
@@ -82,7 +80,6 @@ func TestGetStatsHonoursPeriodParameter(t *testing.T) {
 	assert.Equal(t, testNow.AddDate(0, 0, -7), matches.since)
 }
 
-// Саммонер есть, матчей за период нет — это 200 с нулями, а не 404.
 func TestGetStatsEmptyPeriodIsNotAnError(t *testing.T) {
 	rec := call(t, statsDeps(), http.MethodGet, "/api/v1/summoners/"+testPUUID+"/stats?period=1d", "")
 	require.Equal(t, http.StatusOK, rec.Code, "тело: %s", rec.Body.String())
@@ -130,7 +127,6 @@ func TestGetStatsAcceptsBoundaryPeriods(t *testing.T) {
 	}
 }
 
-// Регистр и пробелы в period прощаем: клиенту незачем угадывать наши соглашения.
 func TestGetStatsNormalizesPeriod(t *testing.T) {
 	rec := call(t, statsDeps(), http.MethodGet, "/api/v1/summoners/"+testPUUID+"/stats?period=%2014D%20", "")
 	require.Equal(t, http.StatusOK, rec.Code, "тело: %s", rec.Body.String())
@@ -153,8 +149,6 @@ func TestGetStatsReturns500OnStorageFailure(t *testing.T) {
 	requireErrorCode(t, rec, http.StatusInternalServerError, "internal_error")
 }
 
-// Статистика считается по базе; в Riot ходить нельзя — иначе не уложиться
-// в 200 мс из SPEC.md 3.6.
 func TestGetStatsDoesNotCallRiot(t *testing.T) {
 	deps := statsDeps(participation("Ahri", 1, 1, 1, true))
 	profiles := deps.Profiles.(*fakeProfiles)

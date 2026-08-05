@@ -1,4 +1,3 @@
-// Команда server — HTTP-бэкенд League Companion.
 package main
 
 import (
@@ -21,7 +20,6 @@ import (
 	"github.com/stacktraceo/league-companion/backend/internal/syncer"
 )
 
-// Таймауты HTTP-сервера — защита от медленных клиентов.
 const (
 	readHeaderTimeout = 5 * time.Second
 	readTimeout       = 15 * time.Second
@@ -29,7 +27,7 @@ const (
 	idleTimeout       = 60 * time.Second
 	shutdownTimeout   = 10 * time.Second
 
-	// syncShutdownTimeout — сколько ждать активные фоновые синхронизации.
+	// syncShutdownTimeout - сколько ждать активные фоновые синхронизации.
 	// Меньше shutdownTimeout: сначала дожидаемся их, потом закрываем HTTP.
 	syncShutdownTimeout = 8 * time.Second
 )
@@ -43,7 +41,7 @@ func main() {
 
 func run() error {
 	// .env удобен локально; в docker-compose переменные приходят из окружения,
-	// поэтому его отсутствие — не ошибка.
+	// поэтому его отсутствие - не ошибка.
 	dotEnvFiles, err := config.LoadDotEnv()
 	if err != nil {
 		return err
@@ -79,7 +77,7 @@ func run() error {
 	// лимитер на каждого означал бы двойной расход и 429 от Riot.
 	limiter := ratelimit.New(ratelimit.RiotDevKeyLimits...)
 
-	// Недоступный Redis не должен ронять сервис — Open деградирует в кэш в памяти.
+	// Недоступный Redis не должен ронять сервис - Open деградирует в кэш в памяти.
 	responseCache := cache.Open(ctx, cfg.RedisAddr, logger)
 	defer func() {
 		if err := responseCache.Close(); err != nil {
@@ -101,7 +99,7 @@ func run() error {
 	syncService := syncer.NewService(riotClient, summoners, ranked, matches, logger)
 
 	runner := syncer.NewRunner(syncService, syncer.DefaultWorkers, syncer.DefaultQueueSize, logger)
-	// Базовый контекст — контекст приложения, а не запроса: HTTP-запрос
+	// Базовый контекст - контекст приложения, а не запроса: HTTP-запрос
 	// завершается сразу после ответа, а синхронизация продолжается в фоне.
 	// WithoutCancel нужен потому, что ctx отменяется по сигналу остановки, а
 	// активные задачи должны доживать до Shutdown ниже, а не обрываться сразу.
@@ -119,7 +117,7 @@ func run() error {
 
 		defer ticker.Stop()
 	} else {
-		logger.Warn("SYNC_INTERVAL=0 — периодическая синхронизация выключена")
+		logger.Warn("SYNC_INTERVAL=0 - периодическая синхронизация выключена")
 	}
 
 	server := &http.Server{
@@ -161,7 +159,7 @@ func run() error {
 		logger.Info("получен сигнал остановки, завершаемся")
 	}
 
-	// Контекст сигнала уже отменён — для shutdown нужен свой.
+	// Контекст сигнала уже отменён - для shutdown нужен свой.
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
@@ -176,12 +174,6 @@ func run() error {
 	return nil
 }
 
-// stopRunner дожидается активных фоновых синхронизаций.
-//
-// Ждём ограниченное время: один прогон — это десятки запросов к Riot под лимитом,
-// и растягивать из-за него остановку сервиса неправильно. Обрыв безопасен: каждый
-// матч сохраняется отдельной транзакцией, а недокачанные подберёт следующий прогон
-// (KnownIDs отфильтрует уже сохранённые).
 func stopRunner(runner *syncer.Runner, logger *slog.Logger) {
 	ctx, cancel := context.WithTimeout(context.Background(), syncShutdownTimeout)
 	defer cancel()

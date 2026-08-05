@@ -76,7 +76,7 @@ object NetworkModule {
     fun provideLeagueApi(retrofit: Retrofit): LeagueApi = retrofit.create(LeagueApi::class.java)
 
     // POST /summoners делает три запроса к Riot и отвечает примерно за полторы
-    // секунды на холодном кэше — read-таймаут должен это переживать с запасом.
+    // секунды на холодном кэше - read-таймаут должен это переживать с запасом.
     private const val CONNECT_TIMEOUT_SECONDS = 10L
     private const val READ_TIMEOUT_SECONDS = 30L
 }

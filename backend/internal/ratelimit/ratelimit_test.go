@@ -10,9 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fakeClock — управляемые часы. Без них тесты на лимитер зависели бы от настенного
-// времени: секундные окна Riot пришлось бы реально пережидать, а результат всё равно
-// плавал бы под нагрузкой CI.
 type fakeClock struct {
 	mu      sync.Mutex
 	now     time.Time
@@ -20,8 +17,6 @@ type fakeClock struct {
 	onSleep func()
 }
 
-// newFakeClock стартует от реального «сейчас»: context.WithDeadline сравнивает
-// дедлайн с настенными часами, поэтому фейковое время должно быть рядом с ними.
 func newFakeClock() *fakeClock {
 	return &fakeClock{now: time.Now()}
 }
@@ -74,7 +69,6 @@ func newTestLimiter(clock *fakeClock, limits ...Limit) *Limiter {
 	return limiter
 }
 
-// waitTimes прогоняет n запросов и возвращает моменты, когда каждый был отпущен.
 func waitTimes(t *testing.T, limiter *Limiter, clock *fakeClock, n int) []time.Time {
 	t.Helper()
 
@@ -88,10 +82,6 @@ func waitTimes(t *testing.T, limiter *Limiter, clock *fakeClock, n int) []time.T
 	return times
 }
 
-// assertRespectsLimits — главный инвариант: ни в одном окне длиной Per не должно
-// оказаться больше Requests отпущенных запросов. Проверяется по фактическим моментам
-// возврата из Wait, а не по внутреннему состоянию — именно это ломается, если
-// лимитеры ждать по очереди (токен списывается раньше, чем запрос реально уходит).
 func assertRespectsLimits(t *testing.T, times []time.Time, limits ...Limit) {
 	t.Helper()
 
@@ -114,7 +104,7 @@ func assertRespectsLimits(t *testing.T, times []time.Time, limits ...Limit) {
 }
 
 func TestRiotDevKeyLimitsMatchSpec(t *testing.T) {
-	// SPEC.md 3.2: Personal Development Key — 20 запросов/сек и 100 запросов/2 минуты.
+	// SPEC.md 3.2: Personal Development Key - 20 запросов/сек и 100 запросов/2 минуты.
 	assert.Equal(t, []Limit{
 		{Requests: 20, Per: time.Second},
 		{Requests: 100, Per: 2 * time.Minute},
@@ -150,9 +140,6 @@ func TestCompositeObeysBothLimits(t *testing.T) {
 		"после исчерпания лимита 100/2мин темп задаёт он, а не 20/с")
 }
 
-// Регресс на способ реализации: если занимать слоты в окнах по очереди, быстрое
-// окно отмечает запрос в момент t, хотя тот реально уходит в t+T после разблокировки
-// медленного, — и после долгой паузы пачка запросов проскакивает мимо секундного лимита.
 func TestNoTokenDriftBetweenLimiters(t *testing.T) {
 	clock := newFakeClock()
 	limits := []Limit{
@@ -227,7 +214,7 @@ func TestWaitFailsFastWhenDelayExceedsDeadline(t *testing.T) {
 		"вызывающему коду удобно обрабатывать это как обычный дедлайн")
 	assert.Zero(t, clock.Slept(), "спать заведомо дольше дедлайна бессмысленно")
 
-	// Токен вернулся — неудачная попытка не съела бюджет.
+	// Токен вернулся - неудачная попытка не съела бюджет.
 	require.NoError(t, limiter.Wait(context.Background()))
 	assert.Equal(t, time.Minute, clock.Slept())
 }
@@ -237,9 +224,6 @@ func TestNewPanicsOnInvalidLimit(t *testing.T) {
 	assert.Panics(t, func() { New(Limit{Requests: 5, Per: 0}) })
 }
 
-// Единственный тест на настоящих часах: проверяет, что Wait безопасен при
-// конкурентных вызовах и что общий темп соблюдается. Детектор гонок на этой машине
-// недоступен (нужен cgo+gcc, см. PROGRESS.md), в Linux/докере тест идёт с -race.
 func TestConcurrentWaitRespectsRate(t *testing.T) {
 	const (
 		window   = 100 * time.Millisecond
@@ -271,7 +255,7 @@ func TestConcurrentWaitRespectsRate(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// 5 уходят сразу, остальные 15 — по одному каждые window/requests = 20 мс.
+	// 5 уходят сразу, остальные 15 - по одному каждые window/requests = 20 мс.
 	elapsed := time.Since(started)
 	assert.GreaterOrEqual(t, elapsed, 15*window/requests-5*time.Millisecond)
 }

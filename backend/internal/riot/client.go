@@ -1,8 +1,3 @@
-// Package riot — клиент к Riot Games API: Account-V1, Summoner-V4, League-V4, Match-V5.
-//
-// Клиент отвечает за построение URL (через routing.go), заголовок X-Riot-Token
-// и классификацию ответов в типизированные ошибки. Поверх этого он проводит каждый
-// запрос через кэш, общий ограничитель частоты и backoff на 429/5xx (SPEC.md 3.2).
 package riot
 
 import (
@@ -21,17 +16,17 @@ import (
 )
 
 const (
-	// apiKeyHeader — заголовок аутентификации Riot API.
+	// apiKeyHeader - заголовок аутентификации Riot API.
 	apiKeyHeader = "X-Riot-Token"
 
-	// maxErrorBody — сколько байт тела читать у неуспешного ответа для диагностики.
+	// maxErrorBody - сколько байт тела читать у неуспешного ответа для диагностики.
 	maxErrorBody = 4 << 10
 
-	// maxResponseBody — потолок на успешный ответ. Полный Match-V5 занимает
+	// maxResponseBody - потолок на успешный ответ. Полный Match-V5 занимает
 	// сотни килобайт, так что запас нужен ощутимый.
 	maxResponseBody = 16 << 20
 
-	// defaultRetryAfter — на что заменить Retry-After, если Riot его не прислал.
+	// defaultRetryAfter - на что заменить Retry-After, если Riot его не прислал.
 	defaultRetryAfter = time.Second
 
 	defaultTimeout = 10 * time.Second
@@ -40,16 +35,11 @@ const (
 	defaultRetryAttempts = 3
 	defaultRetryBase     = 500 * time.Millisecond
 
-	// maxRetryDelay — потолок паузы между попытками, кроме случая, когда Riot
+	// maxRetryDelay - потолок паузы между попытками, кроме случая, когда Riot
 	// сам назвал Retry-After: его слушаемся как есть.
 	maxRetryDelay = 30 * time.Second
 )
 
-// Время жизни закэшированных ответов.
-//
-// Детали матча не кэшируются осознанно: они неизменяемы, весят сотни килобайт и
-// целиком ложатся в matches.raw_data (DECISIONS.md, отклонение 1) — Postgres и есть
-// их кэш, дублировать его в Redis незачем.
 const (
 	accountTTL  = 24 * time.Hour
 	summonerTTL = 10 * time.Minute
@@ -58,7 +48,6 @@ const (
 	matchTTL    = 0
 )
 
-// Client — HTTP-клиент к Riot API.
 type Client struct {
 	apiKey     string
 	httpClient *http.Client
@@ -78,10 +67,6 @@ type Client struct {
 	sleep func(ctx context.Context, d time.Duration) error
 }
 
-// New создаёт клиент с ключом Riot API.
-//
-// По умолчанию клиент ходит в Riot без ограничителя и без кэша — и то и другое
-// подключается опциями, потому что делится на весь процесс.
 func New(apiKey string, opts ...Option) *Client {
 	c := &Client{
 		apiKey:        apiKey,
@@ -99,21 +84,18 @@ func New(apiKey string, opts ...Option) *Client {
 	return c
 }
 
-// request — описание одного обращения к Riot.
 type request struct {
 	host  string
 	path  string
 	query url.Values
 
-	// ttl — сколько хранить ответ в кэше; 0 отключает кэширование для вызова.
+	// ttl - сколько хранить ответ в кэше; 0 отключает кэширование для вызова.
 	ttl time.Duration
 
-	// out — куда разобрать тело; nil, если разбор не нужен.
+	// out - куда разобрать тело; nil, если разбор не нужен.
 	out any
 }
 
-// cacheKey однозначно определяет ответ. Ключ Riot сюда не попадает: он живёт
-// в заголовке, а не в URL (DECISIONS.md, «Конвенции»).
 func (r request) cacheKey() string {
 	key := r.host + r.path
 	if len(r.query) > 0 {
@@ -123,11 +105,6 @@ func (r request) cacheKey() string {
 	return key
 }
 
-// do проводит запрос через кэш, ограничитель и повторы и возвращает сырое тело.
-//
-// Порядок здесь принципиален: кэш проверяется до ограничителя (попадание не должно
-// тратить бюджет Riot), а ограничитель дёргается внутри цикла повторов (повтор —
-// такой же запрос к Riot, как и первая попытка).
 func (c *Client) do(ctx context.Context, req request) (json.RawMessage, error) {
 	if body, ok := c.fromCache(ctx, req); ok {
 		return body, nil
@@ -143,8 +120,6 @@ func (c *Client) do(ctx context.Context, req request) (json.RawMessage, error) {
 	return body, nil
 }
 
-// fromCache отдаёт разобранное значение из кэша. Любая проблема — недоступный
-// Redis, битое значение — это не отказ, а просто поход в Riot.
 func (c *Client) fromCache(ctx context.Context, req request) (json.RawMessage, bool) {
 	if c.cache == nil || req.ttl <= 0 {
 		return nil, false
@@ -186,7 +161,6 @@ func (c *Client) toCache(ctx context.Context, req request, body json.RawMessage)
 	}
 }
 
-// fetch выполняет запрос с повторами на 429 и 5xx.
 func (c *Client) fetch(ctx context.Context, req request) (json.RawMessage, error) {
 	var lastErr error
 
@@ -197,7 +171,7 @@ func (c *Client) fetch(ctx context.Context, req request) (json.RawMessage, error
 			}
 		}
 
-		// Ограничитель — внутри цикла: повторная попытка тоже расходует лимит Riot.
+		// Ограничитель - внутри цикла: повторная попытка тоже расходует лимит Riot.
 		if c.limiter != nil {
 			if err := c.limiter.Wait(ctx); err != nil {
 				return nil, fmt.Errorf("riot: ожидание лимитера перед %s: %w", req.path, err)
@@ -219,11 +193,10 @@ func (c *Client) fetch(ctx context.Context, req request) (json.RawMessage, error
 	return nil, lastErr
 }
 
-// backoff выдерживает паузу перед повторной попыткой attempt (нумерация с 1).
 func (c *Client) backoff(ctx context.Context, req request, lastErr error, attempt int) error {
 	delay := c.retryDelay(lastErr, attempt-1)
 
-	// Ждать дольше, чем живёт запрос, бессмысленно — отдаём последнюю ошибку сразу.
+	// Ждать дольше, чем живёт запрос, бессмысленно - отдаём последнюю ошибку сразу.
 	if deadline, ok := ctx.Deadline(); ok && time.Now().Add(delay).After(deadline) {
 		return lastErr
 	}
@@ -243,11 +216,6 @@ func (c *Client) backoff(ctx context.Context, req request, lastErr error, attemp
 	return nil
 }
 
-// retryDelay выбирает паузу перед следующей попыткой.
-//
-// На 429 Riot сам называет срок в Retry-After — его и выдерживаем, самодеятельность
-// здесь только злит лимитер (SPEC.md 3.2). На 5xx — экспонента с джиттером: без
-// него пул воркеров вехи 7, огребший 503, пойдёт на повтор синхронно.
 func (c *Client) retryDelay(err error, exponent int) time.Duration {
 	if retryAfter, ok := RetryAfter(err); ok {
 		return retryAfter
@@ -263,8 +231,6 @@ func (c *Client) retryDelay(err error, exponent int) time.Duration {
 	return half + rand.N(half+1) //nolint:gosec // джиттер, криптостойкость не нужна
 }
 
-// get выполняет GET-запрос и, если out != nil, разбирает тело в out.
-// Всегда возвращает сырое тело успешного ответа — оно нужно для matches.raw_data.
 func (c *Client) get(ctx context.Context, host, path string, query url.Values, out any) (json.RawMessage, error) {
 	endpoint := c.buildURL(host, path, query)
 
@@ -312,8 +278,6 @@ func (c *Client) get(ctx context.Context, host, path string, query url.Values, o
 	return body, nil
 }
 
-// buildURL собирает полный URL запроса. Хост приходит из routing.go — руками
-// здесь ничего не склеивается (SPEC.md 7).
 func (c *Client) buildURL(host, path string, query url.Values) string {
 	base := "https://" + host
 	if c.baseURL != "" {
@@ -328,7 +292,6 @@ func (c *Client) buildURL(host, path string, query url.Values) string {
 	return endpoint
 }
 
-// classifyError переводит неуспешный ответ Riot в типизированную ошибку.
 func classifyError(resp *http.Response, path string) error {
 	switch resp.StatusCode {
 	case http.StatusNotFound:
@@ -355,9 +318,6 @@ func classifyError(resp *http.Response, path string) error {
 	}
 }
 
-// parseRetryAfter разбирает заголовок Retry-After (Riot присылает целые секунды).
-// Отсутствующее или мусорное значение — не повод игнорировать паузу, поэтому
-// откатываемся к defaultRetryAfter.
 func parseRetryAfter(header string) time.Duration {
 	seconds, err := strconv.Atoi(strings.TrimSpace(header))
 	if err != nil || seconds <= 0 {

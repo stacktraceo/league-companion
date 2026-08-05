@@ -1,4 +1,3 @@
-// Package storage отвечает за подключение к PostgreSQL и применение миграций.
 package storage
 
 import (
@@ -9,8 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Параметры пула. Development-ключ Riot жёстко ограничивает поток запросов
-// (20 rps), так что большой пул смысла не имеет.
 const (
 	maxConns          = 10
 	minConns          = 1
@@ -20,7 +17,6 @@ const (
 	connectTimeout    = 5 * time.Second
 )
 
-// Connect открывает пул соединений к PostgreSQL и проверяет его пингом.
 func Connect(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {

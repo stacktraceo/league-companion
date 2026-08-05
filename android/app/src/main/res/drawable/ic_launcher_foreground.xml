@@ -3,7 +3,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Safe zone adaptive-иконки — центральные 72dp из 108, фигура держится внутри. -->
+    <!-- Safe zone adaptive-иконки - центральные 72dp из 108, фигура держится внутри. -->
     <path
         android:fillColor="#C8AA6E"
         android:pathData="M40,34h9v31h21v9H40z" />

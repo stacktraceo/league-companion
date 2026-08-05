@@ -5,13 +5,6 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.Instant
 
-/**
- * Отслеживаемый саммонер. Зеркало таблицы `summoners`
- * (backend/internal/storage/migrations/000001_init.up.sql).
- *
- * Имена колонок — snake_case, как на бэкенде: так запросы в DAO читаются один в один
- * со схемой Postgres, и расхождение полей видно глазами, без сверки двух диалектов.
- */
 @Entity(tableName = "summoners")
 data class SummonerEntity(
     @PrimaryKey

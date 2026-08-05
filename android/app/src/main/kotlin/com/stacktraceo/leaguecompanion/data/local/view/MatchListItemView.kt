@@ -3,13 +3,6 @@ package com.stacktraceo.leaguecompanion.data.local.view
 import androidx.room.ColumnInfo
 import java.time.Instant
 
-/**
- * Строка ленты матчей — результат JOIN'а `match_participants` с `matches`.
- *
- * Не сущность и не таблица: Room собирает такой POJO из произвольного SELECT.
- * Поля повторяют `MatchListItemDto`, поэтому маппер «из кэша» и маппер «из сети»
- * приводят к одной и той же доменной модели, и UI не может отличить источник.
- */
 data class MatchListItemView(
     @ColumnInfo(name = "match_id")
     val matchId: String,

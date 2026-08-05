@@ -8,8 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Таблица — единственный источник истины для теста: platform-хост, regional-маршрут
-// для Match-V5 и regional-маршрут для Account-V1. См. SPEC.md 3.2 и риск в SPEC.md 7.
 var routingCases = []struct {
 	region       string
 	platformHost string
@@ -33,7 +31,7 @@ var routingCases = []struct {
 	{"kr", "kr.api.riotgames.com", RouteAsia, RouteAsia},
 	{"jp1", "jp1.api.riotgames.com", RouteAsia, RouteAsia},
 
-	// SEA: Match-V5 обслуживается на sea, Account-V1 — нет, для него уходим на asia.
+	// SEA: Match-V5 обслуживается на sea, Account-V1 - нет, для него уходим на asia.
 	{"oc1", "oc1.api.riotgames.com", RouteSEA, RouteAsia},
 	{"sg2", "sg2.api.riotgames.com", RouteSEA, RouteAsia},
 	{"ph2", "ph2.api.riotgames.com", RouteSEA, RouteAsia},
@@ -72,8 +70,6 @@ func TestAccountRoute(t *testing.T) {
 	}
 }
 
-// Match- и Account-маршруты расходятся только на SEA-платформах. Тест фиксирует это
-// расхождение явно, чтобы «упрощение» до одной функции не прошло незамеченным.
 func TestSEAPlatformsRouteAccountToAsia(t *testing.T) {
 	for _, region := range []string{"oc1", "sg2", "ph2", "th2", "tw2", "vn2"} {
 		t.Run(region, func(t *testing.T) {
@@ -104,8 +100,8 @@ func TestRoutingIsCaseAndSpaceInsensitive(t *testing.T) {
 }
 
 func TestUnknownRegion(t *testing.T) {
-	// «europe»/«americas» — regional-маршруты, а не платформы. Подстановка одного
-	// вместо другого — основной риск SPEC.md 7, она обязана падать, а не молча
+	// «europe»/«americas» - regional-маршруты, а не платформы. Подстановка одного
+	// вместо другого - основной риск SPEC.md 7, она обязана падать, а не молча
 	// возвращать пустую строку.
 	unknown := []string{"", "europe", "americas", "asia", "sea", "eu", "euw", "na", "xx1", "ru1"}
 
@@ -136,7 +132,7 @@ func TestSupportedRegions(t *testing.T) {
 	regions := SupportedRegions()
 	require.Len(t, regions, len(routingCases))
 
-	// Отсортирован и без дублей — список идёт в help CLI и в тексты ошибок.
+	// Отсортирован и без дублей - список идёт в help CLI и в тексты ошибок.
 	for i := 1; i < len(regions); i++ {
 		assert.Less(t, regions[i-1], regions[i], "SupportedRegions должен быть отсортирован")
 	}

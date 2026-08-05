@@ -5,10 +5,6 @@ import (
 	"net/url"
 )
 
-// GetLeagueEntriesByPUUID возвращает ранговые записи саммонера по всем очередям.
-//
-// League-V4 живёт на platform routing'е (SPEC.md 3.2). У безранговых саммонеров
-// список пустой — это не ошибка.
 func (c *Client) GetLeagueEntriesByPUUID(ctx context.Context, region, puuid string) ([]LeagueEntryDTO, error) {
 	if puuid == "" {
 		return nil, ErrEmptyPUUID
@@ -23,7 +19,7 @@ func (c *Client) GetLeagueEntriesByPUUID(ctx context.Context, region, puuid stri
 
 	var entries []LeagueEntryDTO
 
-	// LP меняется после каждой игры — TTL короткий.
+	// LP меняется после каждой игры - TTL короткий.
 	req := request{host: host, path: path, ttl: leagueTTL, out: &entries}
 	if _, err := c.do(ctx, req); err != nil {
 		return nil, err

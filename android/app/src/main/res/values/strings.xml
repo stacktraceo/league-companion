@@ -12,7 +12,7 @@
     <string name="search_empty">Add a summoner to start tracking.</string>
 
     <!-- Ошибки. Формулировки разные не для красоты: 401 значит, что приложение
-         настроено неверно, а 502 — что сервер не смог достучаться до Riot. -->
+         настроено неверно, а 502 - что сервер не смог достучаться до Riot. -->
     <string name="error_no_network">No connection to the backend. Is it running?</string>
     <string name="error_unauthorized">Wrong API key. Check LC_API_KEY in local.properties.</string>
     <string name="error_not_found">Summoner not found.</string>
@@ -30,7 +30,7 @@
     <!-- Экран саммонера. -->
     <string name="summoner_title_fallback">Summoner</string>
     <string name="summoner_missing">This summoner is no longer tracked.</string>
-    <string name="summoner_no_matches">No matches yet — they arrive after the first sync.</string>
+    <string name="summoner_no_matches">No matches yet - they arrive after the first sync.</string>
     <string name="profile_icon_description">Summoner icon</string>
     <string name="profile_region_level">%1$s · level %2$d</string>
     <string name="profile_unranked">Unranked this season</string>
@@ -50,7 +50,7 @@
     <string name="match_score">%1$s · KDA %2$s</string>
     <string name="match_details">%1$s · %2$d CS · %3$s</string>
 
-    <!-- Экран деталей матча. Объективы — четыре отдельных plurals, склеиваемых
+    <!-- Экран деталей матча. Объективы - четыре отдельных plurals, склеиваемых
          разделителем: одна строка на всё не годится, у Android plurals считает
          количество по одному аргументу, а «1 towers · 1 barons» бывает в каждой
          второй игре. -->
@@ -96,7 +96,7 @@
     <string name="stats_empty">No games in this period yet.</string>
 
     <!-- «Сколько прошло» для карточки матча. Через plurals, а не конкатенацией:
-         в английском «1 minute» и «2 minutes» — разные формы, и склеенное
+         в английском «1 minute» и «2 minutes» - разные формы, и склеенное
          "$n minutes" врало бы на каждой первой минуте. -->
     <string name="ago_just_now">just now</string>
     <plurals name="ago_minutes">

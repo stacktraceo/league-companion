@@ -29,14 +29,6 @@ import com.stacktraceo.leaguecompanion.ui.image.RemoteIcon
 import com.stacktraceo.leaguecompanion.ui.theme.LossColor
 import com.stacktraceo.leaguecompanion.ui.theme.WinColor
 
-/**
- * Карточка матча по SPEC.md 4.2: результат цветом, чемпион, KDA, CS, длительность,
- * «сколько прошло».
- *
- * Цвет — не единственный признак исхода: рядом стоит слово Victory/Defeat. Иначе
- * при дальтонизме зелёная и красная карточки различались бы только оттенком, а
- * исход матча — то, что экран обязан сообщать с одного взгляда.
- */
 @Composable
 fun MatchCard(
     match: MatchListItem,

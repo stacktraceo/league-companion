@@ -17,12 +17,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.stacktraceo.leaguecompanion.R
 
-/**
- * Три состояния из SPEC.md 4.4. Все три занимают место контента и показываются
- * только тогда, когда показывать больше нечего: если в кэше уже что-то есть,
- * экран рисует данные, а обновление и его провал сообщает индикатором и снекбаром.
- * Требование «не просто спиннер на весь экран» именно про это.
- */
 @Composable
 fun LoadingBox(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {

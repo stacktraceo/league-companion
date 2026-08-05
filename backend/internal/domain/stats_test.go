@@ -7,8 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// participation собирает участие для тестов агрегации: важны только чемпион,
-// K/D/A и результат.
 func participation(champion string, kills, deaths, assists int, win bool) MatchParticipant {
 	return MatchParticipant{
 		ChampionName: champion,
@@ -44,15 +42,13 @@ func TestAggregateStatsCountsGamesAndWinRate(t *testing.T) {
 	assert.Equal(t, 4, stats.Games)
 	assert.Equal(t, 3, stats.Wins)
 	assert.Equal(t, 1, stats.Losses)
-	assert.InDelta(t, 0.75, stats.WinRate, 0.0001, "винрейт — доля 0..1, не проценты")
+	assert.InDelta(t, 0.75, stats.WinRate, 0.0001, "винрейт - доля 0..1, не проценты")
 
 	assert.Equal(t, 28, stats.Kills)
 	assert.Equal(t, 13, stats.Deaths)
 	assert.Equal(t, 11, stats.Assists)
 }
 
-// KDA агрегатный: (ΣK+ΣA)/ΣD, как на op.gg. Среднее по матчам дало бы другое число —
-// один матч без смертей задирал бы его вверх.
 func TestAggregateStatsUsesAggregateKDA(t *testing.T) {
 	stats := AggregateStats([]MatchParticipant{
 		participation("Ahri", 10, 2, 5, true),
@@ -63,13 +59,11 @@ func TestAggregateStatsUsesAggregateKDA(t *testing.T) {
 	// (10+8+6 + 5+4+2) / (2+0+4) = 35/6 = 5.83
 	assert.InDelta(t, 35.0/6.0, stats.KDA, 0.0001)
 
-	// Среднее по матчам дало бы 7.17: (7.5 + 12.0 + 2.0)/3, где 12.0 — матч
+	// Среднее по матчам дало бы 7.17: (7.5 + 12.0 + 2.0)/3, где 12.0 - матч
 	// без смертей. Порог между двумя определениями и ловит подмену.
 	assert.Less(t, stats.KDA, 6.0, "считаем агрегатный KDA, а не среднее по матчам")
 }
 
-// Ни одной смерти за период — делить не на что; отдаём сумму убийств и ассистов,
-// как это уже делает MatchParticipant.KDA().
 func TestAggregateStatsPerfectKDA(t *testing.T) {
 	stats := AggregateStats([]MatchParticipant{
 		participation("Ahri", 10, 0, 5, true),
@@ -103,8 +97,6 @@ func TestAggregateStatsTopChampionsOrderedByGames(t *testing.T) {
 	assert.Equal(t, "Zed", stats.TopChampions[2].ChampionName)
 }
 
-// При равном числе игр порядок обязан быть определённым, иначе тесты мигают,
-// а клиент видит разный топ на одинаковых данных.
 func TestAggregateStatsTopChampionsTieBreak(t *testing.T) {
 	items := []MatchParticipant{
 		// Одна игра у каждого, KDA убывает: Yasuo 10 > Ahri 5 > Braum 1.
@@ -116,15 +108,13 @@ func TestAggregateStatsTopChampionsTieBreak(t *testing.T) {
 	first := AggregateStats(items, 5)
 	require.Len(t, first.TopChampions, 3)
 	assert.Equal(t, []string{"Yasuo", "Ahri", "Braum"}, championNames(first.TopChampions),
-		"при равном числе игр — по KDA вниз")
+		"при равном числе игр - по KDA вниз")
 
 	// Тот же вход в другом порядке обязан дать тот же результат.
 	shuffled := AggregateStats([]MatchParticipant{items[2], items[0], items[1]}, 5)
 	assert.Equal(t, championNames(first.TopChampions), championNames(shuffled.TopChampions))
 }
 
-// Полное совпадение и по играм, и по KDA разрешается именем — иначе порядок
-// зависел бы от обхода map'ы.
 func TestAggregateStatsTopChampionsTieBreakByName(t *testing.T) {
 	stats := AggregateStats([]MatchParticipant{
 		participation("Yone", 2, 1, 1, true),
@@ -138,7 +128,7 @@ func TestAggregateStatsTopChampionsTieBreakByName(t *testing.T) {
 func TestAggregateStatsLimitsTopChampions(t *testing.T) {
 	var items []MatchParticipant
 
-	// Шесть чемпионов, у каждого своё число игр — топ-5 обязан отрезать последнего.
+	// Шесть чемпионов, у каждого своё число игр - топ-5 обязан отрезать последнего.
 	for i, champion := range []string{"C6", "C5", "C4", "C3", "C2", "C1"} {
 		for range i + 1 {
 			items = append(items, participation(champion, 1, 1, 1, true))
@@ -151,14 +141,12 @@ func TestAggregateStatsLimitsTopChampions(t *testing.T) {
 	assert.Equal(t, []string{"C1", "C2", "C3", "C4", "C5"}, championNames(stats.TopChampions))
 }
 
-// topN больше числа чемпионов — не ошибка, просто отдаём всех.
 func TestAggregateStatsFewerChampionsThanLimit(t *testing.T) {
 	stats := AggregateStats([]MatchParticipant{participation("Ahri", 1, 1, 1, true)}, 5)
 
 	assert.Len(t, stats.TopChampions, 1)
 }
 
-// Бессмысленный topN не должен приводить к панике или отрицательной длине.
 func TestAggregateStatsNonPositiveLimit(t *testing.T) {
 	items := []MatchParticipant{participation("Ahri", 1, 1, 1, true)}
 

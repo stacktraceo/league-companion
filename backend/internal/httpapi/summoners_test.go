@@ -49,8 +49,6 @@ func TestCreateSummonerReturns201AndProfile(t *testing.T) {
 	assert.Equal(t, 47, body.Ranked[0].LeaguePoints)
 }
 
-// Повторное добавление уже известного саммонера — не ошибка и не 201: профиль
-// обновляется, статус 200.
 func TestCreateSummonerReturns200WhenAlreadyTracked(t *testing.T) {
 	deps := testDeps()
 	deps.Profiles = &fakeProfiles{summoner: testSummoner(), created: false}
@@ -59,8 +57,6 @@ func TestCreateSummonerReturns200WhenAlreadyTracked(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code, "тело: %s", rec.Body.String())
 }
 
-// Матчи должны уходить в фон: держать HTTP-соединение ради двух десятков запросов
-// к Riot незачем (решение 1 плана вехи).
 func TestCreateSummonerEnqueuesMatchSync(t *testing.T) {
 	deps := testDeps()
 	queue := deps.Queue.(*fakeQueue)
@@ -71,8 +67,6 @@ func TestCreateSummonerEnqueuesMatchSync(t *testing.T) {
 	assert.Equal(t, []string{testPUUID}, queue.enqueued)
 }
 
-// Переполненная очередь не должна ронять запрос: профиль уже сохранён, матчи
-// подтянет следующий прогон.
 func TestCreateSummonerSurvivesFullQueue(t *testing.T) {
 	deps := testDeps()
 	deps.Queue = &fakeQueue{reject: true}
@@ -81,7 +75,6 @@ func TestCreateSummonerSurvivesFullQueue(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, rec.Code, "тело: %s", rec.Body.String())
 }
 
-// Ранги — не повод терять уже сохранённый профиль.
 func TestCreateSummonerSurvivesRankedReadFailure(t *testing.T) {
 	deps := testDeps()
 	deps.Ranked = &fakeRanked{err: errDatabaseDown}
@@ -94,8 +87,6 @@ func TestCreateSummonerSurvivesRankedReadFailure(t *testing.T) {
 	assert.Empty(t, body.Ranked)
 }
 
-// Регион приводится к нижнему регистру, пробелы срезаются, лишний «#» в теге
-// прощается — клиенту незачем знать наши внутренние соглашения.
 func TestCreateSummonerNormalizesInput(t *testing.T) {
 	deps := testDeps()
 	profiles := deps.Profiles.(*fakeProfiles)
@@ -123,7 +114,7 @@ func TestCreateSummonerRejectsInvalidBody(t *testing.T) {
 		"нет tagLine":        {body: `{"riotId":"A","region":"euw1"}`, code: "invalid_request"},
 		"нет региона":        {body: `{"riotId":"A","tagLine":"EUW"}`, code: "invalid_request"},
 		"неизвестный регион": {body: `{"riotId":"A","tagLine":"EUW","region":"мордор"}`, code: "invalid_request"},
-		// «europe» — regional-маршрут, не платформа; перепутать их легко (SPEC.md 7),
+		// «europe» - regional-маршрут, не платформа; перепутать их легко (SPEC.md 7),
 		// поэтому регион проверяется до похода в Riot.
 		"regional вместо платформы": {body: `{"riotId":"A","tagLine":"EUW","region":"europe"}`, code: "invalid_request"},
 	}
@@ -136,12 +127,11 @@ func TestCreateSummonerRejectsInvalidBody(t *testing.T) {
 			rec := call(t, deps, http.MethodPost, "/api/v1/summoners", test.body)
 			requireErrorCode(t, rec, http.StatusBadRequest, test.code)
 
-			assert.Zero(t, profiles.calls, "в Riot ходить не надо — запрос невалиден")
+			assert.Zero(t, profiles.calls, "в Riot ходить не надо - запрос невалиден")
 		})
 	}
 }
 
-// Тело больше maxRequestBody не должно уходить в парсер целиком.
 func TestCreateSummonerRejectsOversizedBody(t *testing.T) {
 	deps := testDeps()
 	huge := `{"riotId":"` + strings.Repeat("a", maxRequestBody+1) + `","tagLine":"EUW","region":"euw1"}`
@@ -150,7 +140,6 @@ func TestCreateSummonerRejectsOversizedBody(t *testing.T) {
 	requireErrorCode(t, rec, http.StatusBadRequest, "invalid_body")
 }
 
-// Маппинг ошибок Riot на коды API (SPEC.md 3.4).
 func TestCreateSummonerMapsUpstreamErrors(t *testing.T) {
 	tests := map[string]struct {
 		err    error
@@ -159,7 +148,7 @@ func TestCreateSummonerMapsUpstreamErrors(t *testing.T) {
 	}{
 		"саммонер не найден": {err: riot.ErrNotFound, status: http.StatusNotFound, code: "summoner_not_found"},
 		"неизвестный регион": {err: riot.ErrUnknownRegion, status: http.StatusBadRequest, code: "invalid_region"},
-		// Отклонён наш ключ, а не клиентский, — это 502, а не 401.
+		// Отклонён наш ключ, а не клиентский, - это 502, а не 401.
 		"протухший ключ":  {err: riot.ErrUnauthorized, status: http.StatusBadGateway, code: "riot_unauthorized"},
 		"таймаут":         {err: context.DeadlineExceeded, status: http.StatusGatewayTimeout, code: "riot_timeout"},
 		"запрос отменён":  {err: context.Canceled, status: http.StatusGatewayTimeout, code: "riot_timeout"},
@@ -184,8 +173,6 @@ func TestCreateSummonerMapsUpstreamErrors(t *testing.T) {
 	}
 }
 
-// Главный сценарий SPEC.md 3.4: Riot лежит (чаще всего — протух 24-часовой ключ),
-// но саммонер уже отслеживается, и отдать есть что.
 func TestCreateSummonerServesCachedProfileWhenRiotIsDown(t *testing.T) {
 	deps := testDeps()
 	deps.Profiles = &fakeProfiles{err: riot.ErrUnauthorized}
@@ -205,8 +192,6 @@ func TestCreateSummonerServesCachedProfileWhenRiotIsDown(t *testing.T) {
 	assert.Equal(t, 47, body.Ranked[0].LeaguePoints)
 }
 
-// Riot только что не ответил — ставить в очередь задачу, которая гарантированно
-// упадёт в фоне, незачем.
 func TestCreateSummonerDoesNotEnqueueOnStale(t *testing.T) {
 	deps := testDeps()
 	deps.Profiles = &fakeProfiles{err: riot.ErrUnauthorized}
@@ -216,8 +201,6 @@ func TestCreateSummonerDoesNotEnqueueOnStale(t *testing.T) {
 	assert.Empty(t, queue.enqueued)
 }
 
-// Незнакомый саммонер при лежащем Riot — обычная ошибка: отдавать нечего, и 502
-// честно значит «запрос не выполнен».
 func TestCreateSummonerReturns502WhenNothingCached(t *testing.T) {
 	deps := testDeps()
 	deps.Profiles = &fakeProfiles{err: riot.ErrUnauthorized}
@@ -229,8 +212,6 @@ func TestCreateSummonerReturns502WhenNothingCached(t *testing.T) {
 	assert.NotContains(t, rec.Body.String(), "puuid", "в ответе с ошибкой данных быть не должно")
 }
 
-// Не всякая ошибка — повод показать старое. 404 и 400 значат, что отдавать нечего по
-// существу, а 429 просит подождать названный Riot срок, а не смотреть вчерашние цифры.
 func TestCreateSummonerDoesNotServeStaleForClientErrors(t *testing.T) {
 	tests := map[string]struct {
 		err    error
@@ -248,7 +229,7 @@ func TestCreateSummonerDoesNotServeStaleForClientErrors(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			// Снапшот в хранилище есть — и всё равно не отдаётся.
+			// Снапшот в хранилище есть - и всё равно не отдаётся.
 			deps := testDeps()
 			deps.Profiles = &fakeProfiles{err: test.err}
 
@@ -258,8 +239,6 @@ func TestCreateSummonerDoesNotServeStaleForClientErrors(t *testing.T) {
 	}
 }
 
-// Регистр введённого имени не должен мешать найти снапшот: пользователь набирает ник
-// руками, а в базе лежит написание от Riot.
 func TestCreateSummonerFindsCachedProfileIgnoringCase(t *testing.T) {
 	deps := testDeps()
 	deps.Profiles = &fakeProfiles{err: riot.ErrUnauthorized}
@@ -271,7 +250,6 @@ func TestCreateSummonerFindsCachedProfileIgnoringCase(t *testing.T) {
 	assert.True(t, decodeBody[SummonerResponse](t, rec).Stale)
 }
 
-// На 429 отдаём наружу тот же срок, что назвал Riot: клиенту нужно знать, сколько ждать.
 func TestCreateSummonerPassesRetryAfterOn429(t *testing.T) {
 	deps := testDeps()
 	deps.Profiles = &fakeProfiles{err: &riot.RateLimitError{RetryAfter: 7 * time.Second, Scope: "application"}}
@@ -282,7 +260,6 @@ func TestCreateSummonerPassesRetryAfterOn429(t *testing.T) {
 	assert.Equal(t, "7", rec.Header().Get("Retry-After"))
 }
 
-// Хендлер просит у очереди ровно столько матчей, сколько тянет фоновая синхронизация.
 func TestCreateSummonerUsesDefaultMatchCount(t *testing.T) {
 	deps := testDeps()
 	queue := &countingQueue{}
@@ -307,7 +284,6 @@ func TestGetSummonerReturnsProfileFromStorage(t *testing.T) {
 	assert.Empty(t, body.Ranked)
 }
 
-// GET не должен ходить в Riot вовсе — иначе в 200 мс (SPEC.md 3.6) не уложиться.
 func TestGetSummonerDoesNotCallRiot(t *testing.T) {
 	deps := testDeps()
 	profiles := deps.Profiles.(*fakeProfiles)
@@ -365,7 +341,7 @@ func TestListMatchesPaginates(t *testing.T) {
 		call(t, deps, http.MethodGet, "/api/v1/summoners/"+testPUUID+"/matches?limit=5&offset=0", ""))
 	require.Len(t, firstPage.Items, 5)
 	assert.Equal(t, 5, firstPage.Limit)
-	assert.Equal(t, 7, firstPage.Total, "total — всего матчей, а не размер страницы")
+	assert.Equal(t, 7, firstPage.Total, "total - всего матчей, а не размер страницы")
 
 	secondPage := decodeBody[MatchListResponse](t,
 		call(t, deps, http.MethodGet, "/api/v1/summoners/"+testPUUID+"/matches?limit=5&offset=5", ""))
@@ -375,8 +351,6 @@ func TestListMatchesPaginates(t *testing.T) {
 	assert.NotEqual(t, firstPage.Items[0].MatchID, secondPage.Items[0].MatchID)
 }
 
-// Пустая страница — это пустой массив, а не null: иначе Android-клиенту пришлось бы
-// разбирать оба случая.
 func TestListMatchesReturnsEmptyArrayNotNull(t *testing.T) {
 	rec := call(t, testDeps(), http.MethodGet, "/api/v1/summoners/"+testPUUID+"/matches", "")
 	require.Equal(t, http.StatusOK, rec.Code)
@@ -384,7 +358,6 @@ func TestListMatchesReturnsEmptyArrayNotNull(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), `"items":[]`)
 }
 
-// Некорректную пагинацию отвергаем, а не подставляем молча свои числа.
 func TestListMatchesRejectsBadPagination(t *testing.T) {
 	for _, query := range []string{
 		"?limit=0",
@@ -414,7 +387,6 @@ func TestListMatchesAcceptsBoundaryLimits(t *testing.T) {
 	}
 }
 
-// «Саммонер не отслеживается» и «матчей пока нет» — разные ситуации для клиента.
 func TestListMatchesReturns404ForUnknownSummoner(t *testing.T) {
 	deps := testDeps()
 	deps.Matches = &fakeMatches{items: map[string][]storage.MatchListItem{}}
@@ -423,7 +395,6 @@ func TestListMatchesReturns404ForUnknownSummoner(t *testing.T) {
 	requireErrorCode(t, rec, http.StatusNotFound, "summoner_not_found")
 }
 
-// Пагинация проверяется до похода в базу: смысла читать матчи при limit=0 нет.
 func TestListMatchesValidatesPaginationBeforeStorage(t *testing.T) {
 	deps := testDeps()
 	matches := &fakeMatches{items: map[string][]storage.MatchListItem{testPUUID: matchItems(3)}}

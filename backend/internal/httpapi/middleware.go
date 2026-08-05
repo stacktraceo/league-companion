@@ -9,12 +9,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// requestIDHeader — заголовок, в котором request-id возвращается клиенту.
-// chi/middleware.RequestID кладёт идентификатор только в контекст; наружу его
-// отдаём сами, чтобы Android мог сослаться на него в баг-репорте.
 const requestIDHeader = "X-Request-Id"
 
-// RequestLogger пишет структурный лог на каждый входящий запрос (SPEC.md 3.6).
 func RequestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -43,10 +39,6 @@ func RequestLogger(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// Recoverer превращает панику в 500 и пишет её в структурный лог.
-//
-// Своя реализация вместо chi/middleware.Recoverer: тот печатает стек напрямую
-// в stderr в обход slog, а SPEC.md 3.6 требует структурных логов.
 func Recoverer(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +49,7 @@ func Recoverer(logger *slog.Logger) func(http.Handler) http.Handler {
 					return
 				}
 
-				// http.ErrAbortHandler — штатный способ оборвать ответ,
+				// http.ErrAbortHandler - штатный способ оборвать ответ,
 				// его пробрасываем дальше по конвенции net/http.
 				if recovered == http.ErrAbortHandler { //nolint:errorlint // сравнение с sentinel-значением паники
 					panic(recovered)

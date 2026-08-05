@@ -48,7 +48,7 @@ class SummonerRepositoryTest {
             val result = repository.refresh(TEST_PUUID)
 
             assertEquals(AppResult.Failure(AppError.NoNetwork), result)
-            // Ради этого чтение и отделено от обновления: провал refresh — событие,
+            // Ради этого чтение и отделено от обновления: провал refresh - событие,
             // а не повод очистить экран.
             assertEquals("Faker#KR1", repository.observe(TEST_PUUID).first()?.displayName)
         }

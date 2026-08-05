@@ -17,14 +17,6 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Профили саммонеров: чтение — из Room, запись — из сети.
- *
- * Наружу торчат две разные вещи: [observe] — подписка, которая живёт всегда и не
- * умеет падать, и `suspend`-методы, которые ходят в сеть и возвращают [AppResult].
- * Экран из-за этого не выбирает между «кэш или сеть»: он подписан на кэш, а
- * обновление — отдельное действие, чей провал не стирает уже показанное.
- */
 @Singleton
 class SummonerRepository
     @Inject
@@ -38,20 +30,8 @@ class SummonerRepository
                 summoner?.toDomain(ranked.map { it.toDomain() })
             }
 
-        /**
-         * Список отслеживаемых — без ранга: на экране выбора он не показывается,
-         * а тянуть его значило бы держать подписку на вторую таблицу ради ничего.
-         */
         fun observeTracked(): Flow<List<Summoner>> = dao.observeAll().map { rows -> rows.map { it.toDomain(emptyList()) } }
 
-        /**
-         * Добавить саммонера в отслеживаемые. Возвращает puuid — по нему экран
-         * переходит к профилю.
-         *
-         * Запись в базу — внутри [runCatchingApi] вместе с запросом: если вставка
-         * упадёт, это должно стать ошибкой операции, а не молча оставить экран
-         * подписанным на пустой кэш.
-         */
         suspend fun track(
             riotId: String,
             tagLine: String,
@@ -63,20 +43,12 @@ class SummonerRepository
                 dto.puuid
             }
 
-        /** Перечитать профиль и ранг. Матчи обновляет [MatchRepository]. */
         suspend fun refresh(puuid: String): AppResult<Unit> =
             errors.runCatchingApi {
                 val dto = api.summoner(puuid)
                 dao.upsertWithRanked(dto.toEntity(), dto.toRankedEntities())
             }
 
-        /**
-         * Попросить бэкенд синхронизироваться с Riot.
-         *
-         * Отвечает `202` сразу, до того как матчи появятся в базе бэкенда, поэтому
-         * возвращается только отметка прошлой синхронизации: новые матчи приедут
-         * следующим [MatchRepository.refresh], а не этим вызовом.
-         */
         suspend fun requestSync(puuid: String): AppResult<Instant?> = errors.runCatchingApi { api.sync(puuid).lastSyncedAt }
 
         suspend fun untrack(puuid: String) = dao.delete(puuid)

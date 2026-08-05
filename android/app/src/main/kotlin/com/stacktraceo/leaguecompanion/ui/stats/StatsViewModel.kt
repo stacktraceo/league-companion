@@ -22,11 +22,6 @@ data class StatsUiState(
     val error: AppError? = null,
 )
 
-/**
- * Единственный экран без подписки на Room: статистику считает бэкенд, локального
- * источника у неё нет. Поэтому здесь обычный [MutableStateFlow], а не `stateIn` —
- * подписывать нечего.
- */
 @HiltViewModel
 class StatsViewModel
     @Inject

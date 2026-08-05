@@ -1,4 +1,3 @@
-// Package httpapi собирает HTTP-слой бэкенда: роутер, middleware и хендлеры.
 package httpapi
 
 import (
@@ -11,21 +10,17 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// healthCheckTimeout ограничивает пинг БД, чтобы health-check не висел.
 const healthCheckTimeout = 2 * time.Second
 
-// Pinger — то, что умеет проверять доступность (реализуется *pgxpool.Pool).
 type Pinger interface {
 	Ping(ctx context.Context) error
 }
 
-// Deps — всё, что нужно роутеру. Структурой, а не позиционными аргументами:
-// восемь параметров подряд слишком легко перепутать местами.
 type Deps struct {
 	Logger *slog.Logger
 	DB     Pinger
 
-	// ClientAPIKey — shared secret для заголовка X-API-Key (DECISIONS.md, отклонение 3).
+	// ClientAPIKey - shared secret для заголовка X-API-Key (DECISIONS.md, отклонение 3).
 	ClientAPIKey string
 
 	Profiles  ProfileSyncer
@@ -35,15 +30,10 @@ type Deps struct {
 	Matches   MatchStore
 
 	// Now подменяется в тестах: от настенных часов зависят и граница периода
-	// в /stats, и cooldown принудительной синхронизации. Пустое значение — time.Now.
+	// в /stats, и cooldown принудительной синхронизации. Пустое значение - time.Now.
 	Now func() time.Time
 }
 
-// NewRouter собирает роутер бэкенда.
-//
-// /healthz намеренно живёт вне /api/v1: проверка X-API-Key вешается только на
-// /api/v1/* (DECISIONS.md, отклонение 3), иначе мониторингу и docker-compose
-// пришлось бы знать секрет.
 func NewRouter(deps Deps) *chi.Mux {
 	now := deps.Now
 	if now == nil {
@@ -72,7 +62,6 @@ func NewRouter(deps Deps) *chi.Mux {
 	return router
 }
 
-// healthHandler отвечает 200, если бэкенд жив и база отвечает, иначе 503.
 func healthHandler(logger *slog.Logger, db Pinger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), healthCheckTimeout)

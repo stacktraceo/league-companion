@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Ошибка формы: либо ввод не похож на Riot ID, либо запрос не удался. */
 sealed interface SearchError {
     data object BadFormat : SearchError
 
@@ -50,7 +49,7 @@ class SearchViewModel
         private val submitting = MutableStateFlow(false)
         private val error = MutableStateFlow<SearchError?>(null)
 
-        // Переход — событие, а не состояние: положи мы puuid в state, возврат назад
+        // Переход - событие, а не состояние: положи мы puuid в state, возврат назад
         // тут же уводил бы обратно на профиль, потому что поле никуда не делось.
         private val openEvents = Channel<String>(Channel.BUFFERED)
         val opened: Flow<String> = openEvents.receiveAsFlow()
@@ -90,7 +89,7 @@ class SearchViewModel
                 error.value = null
                 try {
                     // Форма при ошибке не очищается: `404` чаще всего значит опечатку
-                    // или не тот регион, и заставлять набирать ник заново — грубо.
+                    // или не тот регион, и заставлять набирать ник заново - грубо.
                     when (val result = summoners.track(riotId.gameName, riotId.tagLine, region.value.code)) {
                         is AppResult.Success -> openEvents.send(result.value)
                         is AppResult.Failure -> error.value = SearchError.Failed(result.error)

@@ -11,18 +11,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MatchDao {
-    /**
-     * Лента матчей одного саммонера.
-     *
-     * Отдаётся не страница, а первые [limit] записей от начала: при подгрузке экран
-     * увеличивает [limit], а не двигает offset. Со сдвигом окна подписка отдавала бы
-     * только последнюю страницу, и уже показанные матчи пришлось бы склеивать в UI
-     * руками; здесь же Room присылает весь накопленный список целиком.
-     *
-     * `match_id` в ORDER BY — не украшение: у двух матчей может совпасть
-     * `game_creation` с точностью до миллисекунды, и без второго ключа порядок между
-     * ними не определён, отчего строки прыгали бы местами при каждом пересчёте.
-     */
     @Query(
         """
         SELECT m.match_id, m.game_creation, m.game_duration, m.queue_id, m.game_version,
@@ -48,13 +36,6 @@ interface MatchDao {
     @Upsert
     suspend fun upsertParticipants(participants: List<MatchParticipantEntity>)
 
-    /**
-     * Страница из сети пишется целиком или никак.
-     *
-     * Порядок обязателен: `match_participants` ссылается на `matches` внешним ключом,
-     * а Room держит `PRAGMA foreign_keys = ON`, так что участие, записанное раньше
-     * своего матча, роняет вставку.
-     */
     @Transaction
     suspend fun upsertPage(
         matches: List<MatchEntity>,

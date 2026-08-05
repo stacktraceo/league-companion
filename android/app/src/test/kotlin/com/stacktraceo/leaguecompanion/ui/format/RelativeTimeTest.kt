@@ -8,7 +8,7 @@ class RelativeTimeTest {
     private val now = Instant.parse("2026-07-11T12:00:00Z")
 
     @Test
-    fun `меньше минуты — только что`() {
+    fun `меньше минуты - только что`() {
         assertEquals(Ago.JustNow, ago(now.minusSeconds(59), now))
     }
 
@@ -43,7 +43,7 @@ class RelativeTimeTest {
 
     @Test
     fun `неполная единица округляется вниз, а не вверх`() {
-        // 90 минут — это «1 час назад», а не «2 часа»: завышать давность нельзя,
+        // 90 минут - это «1 час назад», а не «2 часа»: завышать давность нельзя,
         // иначе только что сыгранный матч уезжает в прошлое.
         assertEquals(Ago.Hours(1), ago(now.minusSeconds(90 * 60), now))
     }

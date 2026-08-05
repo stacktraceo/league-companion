@@ -6,19 +6,13 @@ import (
 	"time"
 )
 
-// minSweepSize — раньше этого числа записей чистить нечего.
 const minSweepSize = 64
 
-// Memory — кэш в памяти процесса. Используется, когда Redis не настроен или
-// недоступен (SPEC.md 3.1 допускает «sync.Map + TTL» как альтернативу Redis).
-//
-// Отличие от Redis по смыслу одно: кэш перестаёт быть общим между инстансами
-// и обнуляется при рестарте.
 type Memory struct {
 	mu    sync.RWMutex
 	items map[string]memoryItem
 
-	// nextSweep — размер, при котором пора выбрасывать протухшие записи.
+	// nextSweep - размер, при котором пора выбрасывать протухшие записи.
 	// Без этого ключи с истёкшим TTL копились бы вечно: ленивое вытеснение
 	// на Get освобождает только то, что перечитывают.
 	nextSweep int
@@ -31,7 +25,6 @@ type memoryItem struct {
 	expires time.Time
 }
 
-// NewMemory создаёт пустой кэш в памяти.
 func NewMemory() *Memory {
 	return &Memory{
 		items:     make(map[string]memoryItem),
@@ -40,7 +33,6 @@ func NewMemory() *Memory {
 	}
 }
 
-// Get возвращает значение и признак попадания. Протухшая запись считается промахом.
 func (m *Memory) Get(_ context.Context, key string) ([]byte, bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -55,7 +47,6 @@ func (m *Memory) Get(_ context.Context, key string) ([]byte, bool, error) {
 	return append([]byte(nil), item.value...), true, nil
 }
 
-// Set кладёт значение под ключ. Неположительный ttl — no-op, как и у Redis.
 func (m *Memory) Set(_ context.Context, key string, value []byte, ttl time.Duration) error {
 	if ttl <= 0 {
 		return nil
@@ -76,10 +67,8 @@ func (m *Memory) Set(_ context.Context, key string, value []byte, ttl time.Durat
 	return nil
 }
 
-// Close существует только ради общего с Redis интерфейса — закрывать тут нечего.
 func (m *Memory) Close() error { return nil }
 
-// sweep выбрасывает протухшие записи. Вызывается под уже взятым m.mu.
 func (m *Memory) sweep() {
 	now := m.now()
 

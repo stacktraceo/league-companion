@@ -8,17 +8,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// apiKeyHeader — заголовок shared secret между Android-клиентом и бэкендом
-// (DECISIONS.md, отклонение 3).
 const apiKeyHeader = "X-API-Key"
 
-// APIKeyAuth проверяет X-API-Key на всех запросах, которые через него проходят.
-//
-// Вешается только на /api/v1/*: health-check должен оставаться доступным
-// мониторингу и docker-compose без секрета.
-//
-// Сравнение — constant-time: обычное == выходит на первом различающемся байте,
-// и по времени ответа ключ подбирается посимвольно. Сам ключ никуда не логируется.
 func APIKeyAuth(logger *slog.Logger, expected string) func(http.Handler) http.Handler {
 	want := []byte(expected)
 

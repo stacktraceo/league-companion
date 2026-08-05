@@ -1,11 +1,5 @@
 package com.stacktraceo.leaguecompanion.core
 
-/**
- * Результат операции, которая может не удаться предсказуемым образом.
- *
- * Своё вместо [kotlin.Result]: тот несёт `Throwable`, а нам нужен разобранный
- * [AppError] — иначе разбор HTTP-кодов расползётся по вызывающим.
- */
 sealed interface AppResult<out T> {
     data class Success<T>(
         val value: T,

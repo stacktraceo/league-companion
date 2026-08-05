@@ -10,21 +10,14 @@ import (
 	"github.com/stacktraceo/league-companion/backend/internal/domain"
 )
 
-// RankedStats — доступ к ранговым снапшотам.
 type RankedStats struct {
 	pool *pgxpool.Pool
 }
 
-// NewRankedStats создаёт репозиторий ранговых снапшотов поверх пула соединений.
 func NewRankedStats(pool *pgxpool.Pool) *RankedStats {
 	return &RankedStats{pool: pool}
 }
 
-// Replace заменяет ранговый снапшот саммонера целиком.
-//
-// Именно замена, а не слияние: League-V4 отдаёт полный список очередей, и если
-// игрок перестал играть флекс, старую запись надо убрать, а не оставить висеть
-// с прошлогодним рангом. Пустой список — валидный случай: саммонер без ранга.
 func (r *RankedStats) Replace(ctx context.Context, puuid string, stats []domain.RankedStat) error {
 	err := pgx.BeginFunc(ctx, r.pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `DELETE FROM ranked_stats WHERE puuid = $1`, puuid); err != nil {
@@ -54,8 +47,6 @@ func (r *RankedStats) Replace(ctx context.Context, puuid string, stats []domain.
 	return nil
 }
 
-// ByPUUID возвращает ранги саммонера по всем очередям. Пустой результат —
-// не ошибка: саммонер может быть без ранга.
 func (r *RankedStats) ByPUUID(ctx context.Context, puuid string) ([]domain.RankedStat, error) {
 	const query = `
 		SELECT puuid, queue_type, tier, rank, league_points, wins, losses, updated_at
@@ -103,7 +94,6 @@ func (r *RankedStats) ByPUUID(ctx context.Context, puuid string) ([]domain.Ranke
 	return stats, nil
 }
 
-// derefOr разыменовывает указатель из nullable-колонки.
 func derefOr[T any](value *T, fallback T) T {
 	if value == nil {
 		return fallback

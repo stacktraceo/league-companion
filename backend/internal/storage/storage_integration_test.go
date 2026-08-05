@@ -17,21 +17,12 @@ import (
 	"github.com/stacktraceo/league-companion/backend/internal/domain"
 )
 
-// testPool поднимает пул на тестовой базе и оставляет схему пустой.
-//
-// Без TEST_DATABASE_URL тесты пропускаются: `go test ./...` должен оставаться
-// зелёным без поднятого Postgres. Поднять базу для прогона:
-//
-//	docker run --rm -d --name lc-test-pg -p 55432:5432 \
-//	  -e POSTGRES_USER=league -e POSTGRES_PASSWORD=league -e POSTGRES_DB=league_test postgres:16
-//	TEST_DATABASE_URL='postgres://league:league@localhost:55432/league_test?sslmode=disable' \
-//	  go test ./internal/storage/...
 func testPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 
 	dsn := strings.TrimSpace(os.Getenv("TEST_DATABASE_URL"))
 	if dsn == "" {
-		t.Skip("TEST_DATABASE_URL не задан — интеграционные тесты пропущены")
+		t.Skip("TEST_DATABASE_URL не задан - интеграционные тесты пропущены")
 	}
 
 	require.NoError(t, Migrate(dsn, slog.New(slog.NewTextHandler(io.Discard, nil))))
@@ -83,7 +74,6 @@ func testParticipant(matchID, puuid string) domain.MatchParticipant {
 	}
 }
 
-// mustUpsert сохраняет саммонера и возвращает признак «создан впервые».
 func mustUpsert(t *testing.T, ctx context.Context, repo *Summoners, summoner domain.Summoner) bool {
 	t.Helper()
 
@@ -113,7 +103,7 @@ func TestSummonerUpsertRefreshesProfile(t *testing.T) {
 	ctx := context.Background()
 
 	summoner := testSummoner("puuid-1")
-	assert.True(t, mustUpsert(t, ctx, repo, summoner), "первое добавление — создание")
+	assert.True(t, mustUpsert(t, ctx, repo, summoner), "первое добавление - создание")
 
 	stored, err := repo.ByPUUID(ctx, "puuid-1")
 	require.NoError(t, err)
@@ -125,7 +115,7 @@ func TestSummonerUpsertRefreshesProfile(t *testing.T) {
 	summoner.SummonerLevel = 137
 	summoner.ProfileIconID = 7
 	assert.False(t, mustUpsert(t, ctx, repo, summoner),
-		"повторное — обновление, по нему хендлер отличает 200 от 201")
+		"повторное - обновление, по нему хендлер отличает 200 от 201")
 
 	updated, err := repo.ByPUUID(ctx, "puuid-1")
 	require.NoError(t, err)
@@ -135,8 +125,6 @@ func TestSummonerUpsertRefreshesProfile(t *testing.T) {
 	assert.Equal(t, 1, countRows(t, pool, "summoners"))
 }
 
-// ByRiotID — единственный способ найти снапшот, когда Riot лежит и резолвить puuid
-// нечем (SPEC.md 3.4).
 func TestSummonerByRiotIDIgnoresCase(t *testing.T) {
 	repo := NewSummoners(testPool(t))
 	ctx := context.Background()
@@ -151,14 +139,12 @@ func TestSummonerByRiotIDIgnoresCase(t *testing.T) {
 	_, err = repo.ByRiotID(ctx, "euw1", "Кто-то другой", "EUW")
 	assert.ErrorIs(t, err, ErrNotFound)
 
-	// Тег — часть идентификатора, а не украшение: тот же ник с другим тегом это
+	// Тег - часть идентификатора, а не украшение: тот же ник с другим тегом это
 	// другой человек.
 	_, err = repo.ByRiotID(ctx, "euw1", "Test Summoner", "RU")
 	assert.ErrorIs(t, err, ErrNotFound)
 }
 
-// После переименования старая запись остаётся со своим puuid, и под один Riot ID
-// могут подойти две строки. Берём синхронизированную позже.
 func TestSummonerByRiotIDPrefersFreshestSnapshot(t *testing.T) {
 	repo := NewSummoners(testPool(t))
 	ctx := context.Background()
@@ -166,7 +152,7 @@ func TestSummonerByRiotIDPrefersFreshestSnapshot(t *testing.T) {
 	mustUpsert(t, ctx, repo, testSummoner("puuid-старый"))
 	mustUpsert(t, ctx, repo, testSummoner("puuid-новый"))
 
-	// У «старого» отметка синхронизации есть, у «нового» пока нет — свежим считается
+	// У «старого» отметка синхронизации есть, у «нового» пока нет - свежим считается
 	// тот, о ком известно больше.
 	require.NoError(t, repo.MarkSynced(ctx, "puuid-старый", time.Now()))
 
@@ -174,7 +160,7 @@ func TestSummonerByRiotIDPrefersFreshestSnapshot(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "puuid-старый", stored.PUUID)
 
-	// А когда синхронизирован и второй, побеждает он — NULLS LAST не должен
+	// А когда синхронизирован и второй, побеждает он - NULLS LAST не должен
 	// перевешивать саму дату.
 	require.NoError(t, repo.MarkSynced(ctx, "puuid-новый", time.Now().Add(time.Minute)))
 
@@ -238,7 +224,7 @@ func TestRankedStatsReplaceDropsStaleQueues(t *testing.T) {
 	assert.Equal(t, "GOLD", stats[1].Tier)
 	assert.Equal(t, 47, stats[1].LeaguePoints)
 
-	// Игрок перестал играть флекс — старая запись не должна пережить замену.
+	// Игрок перестал играть флекс - старая запись не должна пережить замену.
 	require.NoError(t, repo.Replace(ctx, "puuid-1", []domain.RankedStat{
 		{PUUID: "puuid-1", QueueType: "RANKED_SOLO_5x5", Tier: "PLATINUM", Rank: "IV",
 			LeaguePoints: 3, Wins: 70, Losses: 60, UpdatedAt: now},
@@ -249,7 +235,7 @@ func TestRankedStatsReplaceDropsStaleQueues(t *testing.T) {
 	require.Len(t, stats, 1)
 	assert.Equal(t, "PLATINUM", stats[0].Tier)
 
-	// Саммонер без ранга — валидный случай.
+	// Саммонер без ранга - валидный случай.
 	require.NoError(t, repo.Replace(ctx, "puuid-1", nil))
 
 	stats, err = repo.ByPUUID(ctx, "puuid-1")
@@ -273,8 +259,6 @@ func TestMatchInsertIsIdempotent(t *testing.T) {
 	assert.Equal(t, 1, countRows(t, pool, "match_participants"))
 }
 
-// Двое отслеживаемых саммонеров могут встретиться в одном матче и синхронизироваться
-// параллельно (DECISIONS.md, отклонение 2): матч не дублируется, участие добавляется.
 func TestMatchInsertAddsSecondTrackedParticipant(t *testing.T) {
 	pool := testPool(t)
 	summoners := NewSummoners(pool)
@@ -363,7 +347,6 @@ func TestRawByID(t *testing.T) {
 	assert.ErrorIs(t, err, ErrNotFound)
 }
 
-// Матч общий для всех участников и переживает удаление саммонера; его участие — нет.
 func TestDeletingSummonerCascadesToParticipation(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
@@ -380,8 +363,6 @@ func TestDeletingSummonerCascadesToParticipation(t *testing.T) {
 	assert.Equal(t, 1, countRows(t, pool, "matches"))
 }
 
-// ParticipationsSince отбирает по времени матча, а не по времени вставки: агрегация
-// за 30 дней не должна захватывать матч годичной давности, догруженный сегодня.
 func TestParticipationsSinceFiltersByGameCreation(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
@@ -425,7 +406,6 @@ func TestParticipationsSinceFiltersByGameCreation(t *testing.T) {
 	assert.Equal(t, "Ahri", participations[0].ChampionName)
 }
 
-// Саммонер без матчей за период — пустой результат, а не ошибка.
 func TestParticipationsSinceWithoutMatches(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()

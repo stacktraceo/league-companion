@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fakeSleeper подменяет ожидание между попытками: тесты на backoff не должны
-// занимать столько же, сколько занимает сам backoff.
 type fakeSleeper struct {
 	mu     sync.Mutex
 	delays []time.Duration
@@ -38,7 +36,6 @@ func (s *fakeSleeper) Delays() []time.Duration {
 	return append([]time.Duration(nil), s.delays...)
 }
 
-// withFakeSleep подменяет сон клиента и возвращает записанные паузы.
 func withFakeSleep(client *Client) *fakeSleeper {
 	sleeper := &fakeSleeper{}
 	client.sleep = sleeper.Sleep
@@ -46,7 +43,6 @@ func withFakeSleep(client *Client) *fakeSleeper {
 	return sleeper
 }
 
-// countingWaiter — заглушка ограничителя: считает, сколько раз его спросили.
 type countingWaiter struct {
 	calls atomic.Int64
 	err   error
@@ -58,7 +54,6 @@ func (w *countingWaiter) Wait(context.Context) error {
 	return w.err
 }
 
-// statusSequence отдаёт заданные коды по очереди, последний повторяется.
 func statusSequence(calls *atomic.Int64, statuses ...int) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		index := int(calls.Add(1)) - 1
@@ -173,7 +168,7 @@ func TestLimiterIsAskedOnEveryAttempt(t *testing.T) {
 
 	assert.Equal(t, int64(3), calls.Load())
 	assert.Equal(t, int64(3), limiter.calls.Load(),
-		"повтор — такой же запрос к Riot, лимит он тоже расходует")
+		"повтор - такой же запрос к Riot, лимит он тоже расходует")
 }
 
 func TestLimiterErrorAbortsRequest(t *testing.T) {
@@ -207,8 +202,6 @@ func TestBackoffStopsWhenContextIsDone(t *testing.T) {
 	assert.Equal(t, int64(1), calls.Load())
 }
 
-// Пауза длиннее оставшегося времени контекста бессмысленна: лучше сразу отдать
-// последнюю ошибку, чем проспать весь дедлайн и отдать ту же самую.
 func TestBackoffSkippedWhenLongerThanDeadline(t *testing.T) {
 	var calls atomic.Int64
 

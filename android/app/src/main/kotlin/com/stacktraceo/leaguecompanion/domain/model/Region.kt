@@ -1,12 +1,5 @@
 package com.stacktraceo.leaguecompanion.domain.model
 
-/**
- * Платформы, которые принимает бэкенд.
- *
- * Список — зеркало `platformRouting` из backend/internal/riot/routing.go. Всё, чего
- * там нет, вернётся как `400 invalid_region`, поэтому экран добавления саммонера
- * даёт выбирать только отсюда, а не принимает произвольную строку.
- */
 enum class Region(
     val code: String,
     val label: String,

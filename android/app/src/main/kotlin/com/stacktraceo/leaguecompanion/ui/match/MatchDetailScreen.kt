@@ -50,7 +50,6 @@ import com.stacktraceo.leaguecompanion.ui.image.RemoteIcon
 import com.stacktraceo.leaguecompanion.ui.theme.LossColor
 import com.stacktraceo.leaguecompanion.ui.theme.WinColor
 
-/** Детали матча: обе команды и все десять участников (SPEC.md 4.2, пункт 4). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatchDetailScreen(
@@ -89,7 +88,7 @@ fun MatchDetailScreen(
                     ErrorState(message = errorText, onRetry = viewModel::refresh)
 
                 // Загрузка прошла без ошибки, а показывать нечего: так выглядит
-                // битая строка кэша — репозиторий отдаёт по ней null, чтобы не
+                // битая строка кэша - репозиторий отдаёт по ней null, чтобы не
                 // ронять подписку. Без этой ветки экран остался бы просто пустым.
                 !state.hasContent ->
                     ErrorState(

@@ -12,7 +12,6 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-/** REST-контракт бэкенда, SPEC.md 3.4. Пути без ведущего слэша — базовый URL уже с ним. */
 interface LeagueApi {
     @POST("api/v1/summoners")
     suspend fun trackSummoner(
@@ -42,12 +41,6 @@ interface LeagueApi {
         @Path("puuid") puuid: String,
     ): SyncAcceptedDto
 
-    /**
-     * Детали матча возвращаются телом, а не разобранным DTO, намеренно: тот же
-     * текст кладётся в кэш как есть. Дай мы Retrofit разобрать ответ — пришлось бы
-     * сериализовать его обратно, чтобы сохранить, то есть гонять данные через два
-     * лишних преобразования и потерять поля, которых нет в DTO.
-     */
     @GET("api/v1/matches/{matchId}")
     suspend fun matchDetail(
         @Path("matchId") matchId: String,

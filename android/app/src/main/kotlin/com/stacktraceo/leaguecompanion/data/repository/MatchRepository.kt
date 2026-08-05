@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Сколько строк реально приехало и сколько их всего у бэкенда — для «показать ещё». */
 data class MatchPage(
     val loaded: Int,
     val total: Int,
@@ -33,16 +32,6 @@ class MatchRepository
             limit: Int = DEFAULT_PAGE_SIZE,
         ): Flow<List<MatchListItem>> = dao.observeFeed(puuid, limit).map { rows -> rows.map { it.toDomain() } }
 
-        /**
-         * Загрузить страницу и положить её в кэш.
-         *
-         * Страница пишется одной транзакцией, ключи строк берутся из данных, поэтому
-         * повторный вызов с тем же `offset` обновляет строки, а не удваивает ленту.
-         *
-         * Требует, чтобы саммонер уже лежал в `summoners`: на `match_participants`
-         * висит внешний ключ. В обычном порядке — сначала `track`, потом лента —
-         * это выполняется само.
-         */
         suspend fun refresh(
             puuid: String,
             limit: Int = DEFAULT_PAGE_SIZE,
@@ -62,7 +51,6 @@ class MatchRepository
         suspend fun cachedCount(puuid: String): Int = dao.cachedCount(puuid)
 
         companion object {
-            /** Совпадает с дефолтным `limit` бэкенда (SPEC.md 3.4). */
             const val DEFAULT_PAGE_SIZE = 20
         }
     }

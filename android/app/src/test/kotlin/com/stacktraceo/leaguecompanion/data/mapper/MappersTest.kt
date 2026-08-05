@@ -28,7 +28,7 @@ class MappersTest {
     @Test
     fun `профиль без синхронизации сохраняет пустой lastSyncedAt`() {
         // POST /summoners отвечает 201 до того, как отработает фоновая синхронизация:
-        // «профиль есть, матчей ещё нет» — обычное состояние, а не сбой разбора.
+        // «профиль есть, матчей ещё нет» - обычное состояние, а не сбой разбора.
         val dto = summonerDto(lastSyncedAt = null, ranked = emptyList())
 
         val summoner = dto.toEntity().toDomain(emptyList())
@@ -38,7 +38,7 @@ class MappersTest {
     }
 
     @Test
-    fun `ранг переносится по очередям, винрейт — доля`() {
+    fun `ранг переносится по очередям, винрейт - доля`() {
         val dto =
             summonerDto(
                 ranked =

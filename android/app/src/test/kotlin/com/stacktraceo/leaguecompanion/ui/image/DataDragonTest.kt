@@ -12,7 +12,7 @@ class DataDragonTest {
 
     @Test
     fun `FiddleSticks от Riot и Fiddlesticks в CDN различаются регистром`() {
-        // Проверено на живом CDN: FiddleSticks.png — 403, Fiddlesticks.png — 200.
+        // Проверено на живом CDN: FiddleSticks.png - 403, Fiddlesticks.png - 200.
         assertEquals("Fiddlesticks", DataDragon.championImageId("FiddleSticks"))
     }
 
@@ -24,7 +24,7 @@ class DataDragonTest {
     @Test
     fun `незнакомое имя отдаётся как есть`() {
         // Riot выпускает чемпионов чаще, чем обновляется этот список. Промах даст
-        // заглушку вместо иконки — это лучше, чем пустая строка в URL.
+        // заглушку вместо иконки - это лучше, чем пустая строка в URL.
         assertEquals("НовыйЧемпион", DataDragon.championImageId("НовыйЧемпион"))
     }
 

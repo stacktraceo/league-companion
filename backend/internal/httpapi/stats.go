@@ -11,23 +11,18 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Параметры агрегации статистики (SPEC.md 3.4).
 const (
-	// defaultPeriodDays — период по умолчанию, тот же, что в примере SPEC.md 3.4.
+	// defaultPeriodDays - период по умолчанию, тот же, что в примере SPEC.md 3.4.
 	defaultPeriodDays = 30
 
-	// maxPeriodDays — год. Дальше смысла нет: сезоны короче, а матчи копятся
+	// maxPeriodDays - год. Дальше смысла нет: сезоны короче, а матчи копятся
 	// только с момента добавления саммонера.
 	maxPeriodDays = 365
 
-	// topChampionCount — «топ-5 чемпионов по количеству игр» из SPEC.md 3.4.
+	// topChampionCount - «топ-5 чемпионов по количеству игр» из SPEC.md 3.4.
 	topChampionCount = 5
 )
 
-// getStats отдаёт агрегацию за период: винрейт, KDA и топ-5 чемпионов.
-//
-// Считает по данным из Postgres и в Riot не ходит: свежесть обеспечивает фоновая
-// синхронизация, а укладываться нужно в 200 мс (SPEC.md 3.6).
 func getStats(logger *slog.Logger, summoners SummonerStore, matches MatchStore, now func() time.Time) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		puuid := chi.URLParam(r, "puuid")
@@ -39,7 +34,7 @@ func getStats(logger *slog.Logger, summoners SummonerStore, matches MatchStore, 
 			return
 		}
 
-		// «Саммонер не отслеживается» и «не играл за период» — разные ответы,
+		// «Саммонер не отслеживается» и «не играл за период» - разные ответы,
 		// поэтому саммонера проверяем отдельно.
 		if _, err := summoners.ByPUUID(r.Context(), puuid); err != nil {
 			respondStorageError(w, r, logger, err, "summoner_not_found", "саммонер не отслеживается")
@@ -56,16 +51,12 @@ func getStats(logger *slog.Logger, summoners SummonerStore, matches MatchStore, 
 			return
 		}
 
-		// Пустой период — это 200 с нулями, а не 404: саммонер существует,
-		// играл он или нет — другой вопрос.
+		// Пустой период - это 200 с нулями, а не 404: саммонер существует,
+		// играл он или нет - другой вопрос.
 		respondJSON(w, r, logger, http.StatusOK, statsResponse(participations, days, since))
 	}
 }
 
-// parsePeriod разбирает ?period=30d и возвращает число дней.
-//
-// Пустое значение берёт период по умолчанию, некорректное — отвергается: молча
-// подставить свой период значило бы отдать клиенту цифры не за то, что он просил.
 func parsePeriod(raw string) (int, error) {
 	raw = strings.ToLower(strings.TrimSpace(raw))
 	if raw == "" {

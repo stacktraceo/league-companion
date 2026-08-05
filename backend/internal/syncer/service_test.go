@@ -22,11 +22,10 @@ const testRegion = "euw1"
 var (
 	testNow = time.Date(2026, 7, 29, 12, 0, 0, 0, time.UTC)
 
-	// testUpsertedAt — created_at, который «выставляет база» при первой вставке.
+	// testUpsertedAt - created_at, который «выставляет база» при первой вставке.
 	testUpsertedAt = time.Date(2026, 7, 29, 11, 0, 0, 0, time.UTC)
 )
 
-// fakeRiot — управляемый клиент Riot: отдаёт заготовленные ответы и считает вызовы.
 type fakeRiot struct {
 	mu sync.Mutex
 
@@ -101,7 +100,6 @@ func (f *fakeRiot) Requested() []string {
 	return append([]string(nil), f.requestedMatches...)
 }
 
-// fakeRepos заменяет все три репозитория разом — в тестах они всегда нужны вместе.
 type fakeRepos struct {
 	mu sync.Mutex
 
@@ -231,7 +229,6 @@ func newTestService(client *fakeRiot, repos *fakeRepos) *Service {
 	return service
 }
 
-// matchDetail собирает ответ Match-V5 с заданными участниками.
 func matchDetail(matchID string, puuids ...string) riot.MatchDetail {
 	participants := make([]riot.ParticipantDTO, 0, len(puuids))
 	for _, puuid := range puuids {
@@ -292,8 +289,6 @@ func TestSyncProfileStoresSummonerAndRanks(t *testing.T) {
 	assert.Equal(t, testNow, repos.ranked["puuid-1"][0].UpdatedAt)
 }
 
-// Профиль — то, ради чего пользователь пришёл; сбой League-V4 не должен ломать
-// добавление саммонера.
 func TestSyncProfileSurvivesLeagueFailure(t *testing.T) {
 	client := &fakeRiot{
 		account:   riot.AccountDTO{PUUID: "puuid-1", GameName: "Test", TagLine: "EUW"},
@@ -327,8 +322,6 @@ func TestSyncProfilePropagatesRiotErrors(t *testing.T) {
 	})
 }
 
-// Фон ходит только через SyncSummoner, поэтому ранги обязан обновлять он: иначе LP
-// и тир замирают на значениях момента добавления (SPEC.md 3.5, пункт 4).
 func TestSyncSummonerRefreshesRanks(t *testing.T) {
 	client := &fakeRiot{
 		matchIDs: []string{"EUW1_1"},
@@ -350,8 +343,6 @@ func TestSyncSummonerRefreshesRanks(t *testing.T) {
 	assert.Equal(t, testNow, repos.ranked["puuid-1"][0].UpdatedAt)
 }
 
-// Недоступный League-V4 не должен мешать догрузке матчей: ранг подтянется следующим
-// прогоном, а матчи важнее.
 func TestSyncSummonerSurvivesLeagueFailure(t *testing.T) {
 	client := &fakeRiot{
 		matchIDs:  []string{"EUW1_1"},
@@ -431,11 +422,9 @@ func TestSyncMatchesContinuesAfterSingleFailure(t *testing.T) {
 	assert.Contains(t, repos.matches, "EUW1_1")
 	assert.Contains(t, repos.matches, "EUW1_3")
 	assert.NotContains(t, repos.matches, "EUW1_2")
-	assert.Contains(t, repos.syncedAt, "puuid-1", "частичный прогресс — тоже прогресс")
+	assert.Contains(t, repos.syncedAt, "puuid-1", "частичный прогресс - тоже прогресс")
 }
 
-// Протухший ключ не лечится следующим матчем: 20 бессмысленных запросов только
-// сожгут лимит.
 func TestSyncMatchesAbortsOnExpiredKey(t *testing.T) {
 	client := &fakeRiot{
 		matchIDs:  []string{"EUW1_1", "EUW1_2", "EUW1_3"},

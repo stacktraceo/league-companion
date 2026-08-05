@@ -9,9 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// rawMatch — фрагмент ответа Match-V5 в том виде, в каком он лежит в matches.raw_data.
-// Поля вроде item0 и summoner1Id в наши DTO не попадают — и именно поэтому эндпоинт
-// отдаёт сырой JSON (DECISIONS.md, отклонение 1).
 const rawMatch = `{"metadata":{"matchId":"EUW1_7","participants":["p1","p2"]},` +
 	`"info":{"gameDuration":1500,"participants":[{"puuid":"p1","championName":"Ahri","item0":3157},` +
 	`{"puuid":"p2","championName":"Zed","summoner1Id":4}]}}`
@@ -23,9 +20,6 @@ func testRawDeps() Deps {
 	return deps
 }
 
-// Хендлер отдаёт сохранённый документ, ничего не пересобирая: своя сериализация
-// потеряла бы поля, которых нет в наших структурах. Сравнение через JSONEq, а не
-// по байтам, — jsonb на стороне Postgres всё равно переставит ключи.
 func TestGetMatchReturnsRawJSONUnchanged(t *testing.T) {
 	rec := call(t, testRawDeps(), http.MethodGet, "/api/v1/matches/EUW1_7", "")
 
@@ -38,8 +32,6 @@ func TestGetMatchReturnsRawJSONUnchanged(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), `"summoner1Id":4`)
 }
 
-// Обе команды и все десять участников — из raw_data, а не из match_participants,
-// где лежат только отслеживаемые саммонеры.
 func TestGetMatchReturnsAllParticipants(t *testing.T) {
 	full := map[string]any{
 		"metadata": map[string]any{"matchId": "EUW1_10"},

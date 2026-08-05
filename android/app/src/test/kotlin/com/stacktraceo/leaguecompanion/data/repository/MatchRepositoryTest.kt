@@ -47,7 +47,7 @@ class MatchRepositoryTest {
             repository.refresh(TEST_PUUID)
 
             // Ключи строк берутся из данных, поэтому вторая загрузка обновляет
-            // те же строки. Сгенерируй мы id при вставке — лента росла бы вдвое
+            // те же строки. Сгенерируй мы id при вставке - лента росла бы вдвое
             // с каждым pull-to-refresh.
             assertEquals(2, repository.cachedCount(TEST_PUUID))
             assertEquals(listOf("KR_2", "KR_1"), repository.observeFeed(TEST_PUUID).first().map { it.matchId })
@@ -89,7 +89,7 @@ class MatchRepositoryTest {
             api.matchesResponse = page(matchItemDto(matchId = "KR_1"))
             repository.refresh(TEST_PUUID)
 
-            // Один и тот же матч может принадлежать двум отслеживаемым саммонерам —
+            // Один и тот же матч может принадлежать двум отслеживаемым саммонерам -
             // разделяет их participant, а не матч.
             assertTrue(repository.observeFeed("puuid-другой").first().isEmpty())
         }

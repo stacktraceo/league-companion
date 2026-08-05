@@ -6,12 +6,8 @@ import (
 	"net/url"
 )
 
-// ErrEmptyPUUID возвращается при пустом PUUID.
 var ErrEmptyPUUID = errors.New("riot: puuid обязателен")
 
-// GetSummonerByPUUID возвращает профиль саммонера: уровень и иконку.
-//
-// Summoner-V4 живёт на platform routing'е (SPEC.md 3.2).
 func (c *Client) GetSummonerByPUUID(ctx context.Context, region, puuid string) (*SummonerDTO, error) {
 	if puuid == "" {
 		return nil, ErrEmptyPUUID

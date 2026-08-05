@@ -34,7 +34,7 @@ class MatchDetailMapperTest {
     @Test
     fun `длительность без gameEndTimestamp читается как миллисекунды`() {
         // Матчи до патча 11.20. Без этой ветки 2 523 000 «секунд» превратились бы
-        // в 700 часов игры — бэкенд нормализует это у себя, но сырой Match-V5
+        // в 700 часов игры - бэкенд нормализует это у себя, но сырой Match-V5
         // проходит мимо той нормализации.
         val detail = parse(matchDetailJson(gameDuration = 2_523_000, gameEndTimestamp = null))
 

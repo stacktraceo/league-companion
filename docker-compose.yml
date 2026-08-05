@@ -37,13 +37,13 @@ services:
 
   backend:
     build: ./backend
-    # RIOT_API_KEY и CLIENT_API_KEY приходят из корневого .env — в git он не попадает.
+    # RIOT_API_KEY и CLIENT_API_KEY приходят из корневого .env - в git он не попадает.
     # Файл обязателен: без ключей config.Load() откажется стартовать.
     env_file:
       - .env
     environment:
       # environment перекрывает env_file, поэтому localhost из .env заменяется на
-      # имена сервисов compose — держать отдельный .env для докера не нужно.
+      # имена сервисов compose - держать отдельный .env для докера не нужно.
       DATABASE_URL: postgres://league:league@postgres:5432/league_companion?sslmode=disable
       REDIS_ADDR: redis:6379
       HTTP_PORT: "8080"

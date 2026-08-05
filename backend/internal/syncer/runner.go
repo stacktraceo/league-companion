@@ -8,22 +8,20 @@ import (
 	"time"
 )
 
-// Параметры фонового исполнителя.
 const (
-	// DefaultWorkers — сколько саммонеров синхронизируются одновременно (SPEC.md 3.5).
+	// DefaultWorkers - сколько саммонеров синхронизируются одновременно (SPEC.md 3.5).
 	// Больше смысла нет: все воркеры всё равно стоят в очереди к общему лимитеру Riot.
 	DefaultWorkers = 3
 
-	// DefaultQueueSize — глубина очереди. Очередь нужна только чтобы всплеск
+	// DefaultQueueSize - глубина очереди. Очередь нужна только чтобы всплеск
 	// добавлений не отбрасывался; накапливать в ней тысячи задач незачем.
 	DefaultQueueSize = 64
 
-	// jobTimeout — потолок на одну синхронизацию. Двадцать матчей под лимитом
+	// jobTimeout - потолок на одну синхронизацию. Двадцать матчей под лимитом
 	// Riot укладываются в минуты, но висеть вечно задача не должна.
 	jobTimeout = 10 * time.Minute
 )
 
-// Syncer — то, что умеет синхронизировать одного саммонера.
 type Syncer interface {
 	SyncSummoner(ctx context.Context, puuid string, count int) (int, error)
 }
@@ -32,15 +30,11 @@ type job struct {
 	puuid string
 	count int
 
-	// done вызывается после завершения задачи — так тикер узнаёт, что его пачка
+	// done вызывается после завершения задачи - так тикер узнаёт, что его пачка
 	// доработана. У задач от HTTP-хендлеров nil: им ждать нечего.
 	done func()
 }
 
-// Runner выполняет синхронизации в фоне.
-//
-// В вехе 7 поверх него встанет тикер с guard'ом от наложения прогонов
-// (DECISIONS.md, отклонение 4); сама очередь и воркеры останутся теми же.
 type Runner struct {
 	service Syncer
 	logger  *slog.Logger
@@ -55,7 +49,6 @@ type Runner struct {
 	cancel   context.CancelFunc
 }
 
-// NewRunner создаёт исполнителя. workers и queueSize меньше единицы поднимаются до неё.
 func NewRunner(service Syncer, workers, queueSize int, logger *slog.Logger) *Runner {
 	workers = max(workers, 1)
 	queueSize = max(queueSize, 1)
@@ -69,11 +62,6 @@ func NewRunner(service Syncer, workers, queueSize int, logger *slog.Logger) *Run
 	}
 }
 
-// Start запускает воркеров.
-//
-// base становится родителем контекстов задач, поэтому это должен быть контекст
-// приложения, а не HTTP-запроса: запрос завершается сразу после ответа, а
-// синхронизация продолжается.
 func (r *Runner) Start(base context.Context) {
 	ctx, cancel := context.WithCancel(base)
 	r.cancel = cancel
@@ -88,20 +76,10 @@ func (r *Runner) Start(base context.Context) {
 		"воркеров", r.workers, "очередь", cap(r.jobs))
 }
 
-// Enqueue ставит саммонера в очередь на синхронизацию.
-//
-// Никогда не блокирует вызывающего: HTTP-хендлер не должен ждать фон. Если очередь
-// переполнена, задача отбрасывается — саммонер уже сохранён, и его подберёт
-// следующий прогон.
 func (r *Runner) Enqueue(puuid string, count int) bool {
 	return r.Submit(puuid, count, nil)
 }
 
-// Submit — то же, что Enqueue, но с колбэком завершения. Нужен тикеру, который
-// дожидается своей пачки, прежде чем снять guard от наложения прогонов.
-//
-// Если задача не принята, done не вызывается — вызывающий обязан обработать это сам
-// по возвращённому false. Иначе счётчик ожидания разошёлся бы с реальностью.
 func (r *Runner) Submit(puuid string, count int, done func()) bool {
 	select {
 	case <-r.quit:
@@ -119,11 +97,6 @@ func (r *Runner) Submit(puuid string, count int, done func()) bool {
 	}
 }
 
-// Shutdown прекращает приём задач и дожидается активных.
-//
-// Задачи, оставшиеся в очереди, не выполняются: каждая — это десятки запросов
-// к Riot, и растягивать из-за них остановку сервиса неправильно. Если дождаться
-// активных не удалось до истечения ctx, они отменяются принудительно.
 func (r *Runner) Shutdown(ctx context.Context) error {
 	r.stopOnce.Do(func() { close(r.quit) })
 

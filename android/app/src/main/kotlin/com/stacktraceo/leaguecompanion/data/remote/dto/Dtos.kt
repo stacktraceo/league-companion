@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import java.time.Instant
 
 // Зеркала backend/internal/httpapi/dto.go. Имена полей совпадают с JSON-тегами,
-// поэтому @SerialName нигде не нужен — расхождение сразу видно глазами.
+// поэтому @SerialName нигде не нужен - расхождение сразу видно глазами.
 
 @Serializable
 data class CreateSummonerRequest(
@@ -78,7 +78,7 @@ data class StatsDto(
     val games: Int,
     val wins: Int,
     val losses: Int,
-    // Доля 0..1, не проценты — форматирует клиент (журнал решений, «День 7»).
+    // Доля 0..1, не проценты - форматирует клиент (журнал решений, «День 7»).
     val winRate: Double,
     val kills: Int,
     val deaths: Int,
@@ -104,7 +104,6 @@ data class SyncAcceptedDto(
     val lastSyncedAt: Instant? = null,
 )
 
-/** Единый формат ошибок бэкенда: `{"error": "summoner_not_found", "message": "..."}`. */
 @Serializable
 data class ApiErrorDto(
     val error: String = "",

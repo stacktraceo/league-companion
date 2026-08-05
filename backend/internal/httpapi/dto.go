@@ -10,15 +10,13 @@ import (
 // JSON-теги живут здесь, а не на доменных структурах: формат API не должен
 // диктоваться формой таблиц, и наоборот.
 
-// createSummonerRequest — тело POST /api/v1/summoners (SPEC.md 3.4).
 type createSummonerRequest struct {
-	// RiotID — игровое имя без тега (GameName из GameName#TagLine).
+	// RiotID - игровое имя без тега (GameName из GameName#TagLine).
 	RiotID  string `json:"riotId"`
 	TagLine string `json:"tagLine"`
 	Region  string `json:"region"`
 }
 
-// SummonerResponse — профиль саммонера вместе с ранговым снапшотом.
 type SummonerResponse struct {
 	PUUID         string           `json:"puuid"`
 	RiotID        string           `json:"riotId"`
@@ -30,11 +28,10 @@ type SummonerResponse struct {
 	CreatedAt     time.Time        `json:"createdAt"`
 	Ranked        []RankedResponse `json:"ranked"`
 
-	// Stale — Riot был недоступен, отдан сохранённый снапшот (SPEC.md 3.4).
+	// Stale - Riot был недоступен, отдан сохранённый снапшот (SPEC.md 3.4).
 	Stale bool `json:"stale,omitempty"`
 }
 
-// RankedResponse — ранг в одной очереди.
 type RankedResponse struct {
 	QueueType    string    `json:"queueType"`
 	Tier         string    `json:"tier"`
@@ -45,7 +42,6 @@ type RankedResponse struct {
 	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
-// MatchListResponse — страница ленты матчей.
 type MatchListResponse struct {
 	Items  []MatchListItemResponse `json:"items"`
 	Limit  int                     `json:"limit"`
@@ -53,7 +49,6 @@ type MatchListResponse struct {
 	Total  int                     `json:"total"`
 }
 
-// MatchListItemResponse — матч глазами одного саммонера.
 type MatchListItemResponse struct {
 	MatchID             string    `json:"matchId"`
 	GameCreation        time.Time `json:"gameCreation"`
@@ -71,13 +66,11 @@ type MatchListItemResponse struct {
 	GoldEarned   int     `json:"goldEarned"`
 }
 
-// SyncAcceptedResponse — ответ на принудительную синхронизацию: она уходит в фон,
-// поэтому отдавать нечего, кроме подтверждения и прошлой отметки.
 type SyncAcceptedResponse struct {
 	Status string `json:"status"`
 	PUUID  string `json:"puuid"`
 
-	// LastSyncedAt — отметка до этого прогона. Клиент поймёт, что прогон дошёл,
+	// LastSyncedAt - отметка до этого прогона. Клиент поймёт, что прогон дошёл,
 	// когда она сдвинется.
 	LastSyncedAt *time.Time `json:"lastSyncedAt"`
 }
@@ -90,7 +83,6 @@ func syncAcceptedResponse(puuid string, lastSyncedAt *time.Time) SyncAcceptedRes
 	}
 }
 
-// StatsResponse — агрегация за период (SPEC.md 3.4).
 type StatsResponse struct {
 	// PeriodDays и Since эхом возвращают, за что именно посчитано: клиент просит
 	// «30d», а границу окна считает сервер.
@@ -101,20 +93,19 @@ type StatsResponse struct {
 	Wins   int `json:"wins"`
 	Losses int `json:"losses"`
 
-	// WinRate — доля побед, 0..1. Проценты форматирует клиент.
+	// WinRate - доля побед, 0..1. Проценты форматирует клиент.
 	WinRate float64 `json:"winRate"`
 
 	Kills   int `json:"kills"`
 	Deaths  int `json:"deaths"`
 	Assists int `json:"assists"`
 
-	// KDA — агрегатный (ΣK+ΣA)/ΣD за период, а не среднее по матчам.
+	// KDA - агрегатный (ΣK+ΣA)/ΣD за период, а не среднее по матчам.
 	KDA float64 `json:"kda"`
 
 	TopChampions []ChampionStatsResponse `json:"topChampions"`
 }
 
-// ChampionStatsResponse — тот же срез по одному чемпиону.
 type ChampionStatsResponse struct {
 	ChampionName string  `json:"championName"`
 	Games        int     `json:"games"`

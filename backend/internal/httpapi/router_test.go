@@ -60,7 +60,6 @@ func TestUnknownRouteReturns404(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 }
 
-// Паника в хендлере не должна ронять процесс — Recoverer обязан её поймать.
 func TestRecovererCatchesPanic(t *testing.T) {
 	router := newHealthRouter(t, stubPinger{})
 	router.Get("/boom", func(http.ResponseWriter, *http.Request) {
@@ -77,12 +76,10 @@ func TestRecovererCatchesPanic(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 	assert.Equal(t, "internal_error", body.Error)
 
-	// Ни текст паники, ни стек наружу не уходят — только в лог.
+	// Ни текст паники, ни стек наружу не уходят - только в лог.
 	assert.NotContains(t, rec.Body.String(), "boom")
 }
 
-// http.ErrAbortHandler — штатный способ оборвать ответ, его Recoverer обязан
-// пробросить дальше, а не превращать в 500.
 func TestRecovererRepanicsOnAbortHandler(t *testing.T) {
 	router := newHealthRouter(t, stubPinger{})
 	router.Get("/abort", func(http.ResponseWriter, *http.Request) {

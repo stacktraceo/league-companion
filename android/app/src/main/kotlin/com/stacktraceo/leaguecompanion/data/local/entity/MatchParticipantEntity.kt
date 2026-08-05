@@ -5,14 +5,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 
-/**
- * Участие отслеживаемого саммонера в матче. Зеркало таблицы `match_participants`.
- *
- * Внешние ключи с CASCADE: удалили саммонера — его участия уходят следом, а матч
- * остаётся, пока на него ссылается кто-то ещё. Room включает `PRAGMA foreign_keys`
- * по умолчанию, поэтому строки нужно писать в порядке matches → participants,
- * иначе вставка упадёт на несуществующем `match_id` (см. `MatchDao.upsertPage`).
- */
 @Entity(
     tableName = "match_participants",
     primaryKeys = ["match_id", "puuid"],
@@ -30,7 +22,7 @@ import androidx.room.Index
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    // match_id — левая колонка составного ключа, её индекс есть; puuid нужен свой,
+    // match_id - левая колонка составного ключа, её индекс есть; puuid нужен свой,
     // по нему идёт выборка ленты.
     indices = [Index(value = ["puuid"])],
 )
@@ -55,7 +47,7 @@ data class MatchParticipantEntity(
     val goldEarned: Int,
     // Колонки сверх схемы бэкенда: там KDA считается на лету
     // (domain.MatchParticipant.KDA), у нас же значение приходит готовым в DTO.
-    // Пересчитывать его на клиенте — значит завести вторую копию правила
+    // Пересчитывать его на клиенте - значит завести вторую копию правила
     // «при нуле смертей возвращаем K+A», и разойтись с /stats на первом же
     // безупречном матче. Дешевле сохранить то, что прислал бэкенд.
     @ColumnInfo(name = "kda")

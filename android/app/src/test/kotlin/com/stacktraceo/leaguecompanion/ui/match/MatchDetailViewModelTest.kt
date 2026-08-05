@@ -57,7 +57,7 @@ class MatchDetailViewModelTest {
         }
 
     @Test
-    fun `пустой кэш и упавшая сеть — ошибка без контента`() =
+    fun `пустой кэш и упавшая сеть - ошибка без контента`() =
         runTest {
             api.failure = IOException("бэкенд не поднят")
 

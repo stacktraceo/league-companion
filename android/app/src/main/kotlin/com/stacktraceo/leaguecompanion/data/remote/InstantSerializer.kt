@@ -10,13 +10,6 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-/**
- * Go отдаёт `time.Time` в RFC3339 — либо с `Z`, либо со смещением вида `+03:00`
- * (зависит от зоны Postgres, а она у контейнера своя).
- *
- * `Instant.parse` рассчитан на форму с `Z`, поэтому разбираем через
- * [OffsetDateTime]: он принимает обе и сам приводит к UTC.
- */
 object InstantSerializer : KSerializer<Instant> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("java.time.Instant", PrimitiveKind.STRING)

@@ -45,7 +45,7 @@ class StatsViewModelTest {
         }
 
     @Test
-    fun `период по умолчанию — тридцать дней из SPEC`() =
+    fun `период по умолчанию - тридцать дней из SPEC`() =
         runTest {
             api.statsResponse = statsDto()
 
@@ -56,7 +56,7 @@ class StatsViewModelTest {
         }
 
     @Test
-    fun `ноль игр за период — это пусто, а не ошибка`() =
+    fun `ноль игр за период - это пусто, а не ошибка`() =
         runTest {
             api.statsResponse =
                 statsDto(
@@ -83,7 +83,7 @@ class StatsViewModelTest {
         }
 
     @Test
-    fun `офлайн статистика честно падает — локально её не посчитать`() =
+    fun `офлайн статистика честно падает - локально её не посчитать`() =
         runTest {
             api.failure = IOException("режим полёта")
 

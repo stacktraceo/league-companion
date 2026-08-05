@@ -1,13 +1,3 @@
-// Команда riotcheck — ручная проверка клиента Riot API «вживую».
-//
-// Прогоняет все пять эндпоинтов из SPEC.md 3.2 на реальном ключе и печатает
-// результат. Нужна прежде всего чтобы быстро отличить протухший ключ (он живёт
-// 24 часа) от ошибки в коде.
-//
-//	go run ./cmd/riotcheck -region ru -riot-id "GameName#TAG"
-//
-// С -repeat видно работу кэша и ограничителя: со второго прохода профиль, ранг и
-// список матчей приходят из кэша, а детали матча каждый раз идут в Riot.
 package main
 
 import (
@@ -44,7 +34,7 @@ func main() {
 
 		if errors.Is(err, riot.ErrUnauthorized) {
 			_, _ = fmt.Fprintln(os.Stderr,
-				"Похоже, RIOT_API_KEY протух — перевыпусти его на https://developer.riotgames.com "+
+				"Похоже, RIOT_API_KEY протух - перевыпусти его на https://developer.riotgames.com "+
 					"и обнови .env (ключ действует 24 часа).")
 		}
 
@@ -57,10 +47,10 @@ func run() error {
 		"platform-регион: "+strings.Join(riot.SupportedRegions(), ", "))
 	riotID := flag.String("riot-id", "", "Riot ID в формате GameName#TagLine (обязательно)")
 	count := flag.Int("count", defaultCount, "сколько match id запросить (1..100)")
-	matchID := flag.String("match", "", "конкретный matchId; по умолчанию — первый из списка")
+	matchID := flag.String("match", "", "конкретный matchId; по умолчанию - первый из списка")
 	repeat := flag.Int("repeat", 1, "сколько раз прогнать проверку: со второго прохода видно кэш")
 	redisAddr := flag.String("redis", "",
-		`адрес Redis; пусто — взять REDIS_ADDR, "`+memorySentinel+`" — кэш в памяти процесса`)
+		`адрес Redis; пусто - взять REDIS_ADDR, "`+memorySentinel+`" - кэш в памяти процесса`)
 	timeout := flag.Duration("timeout", defaultTimeout, "общий таймаут прогона")
 	verbose := flag.Bool("v", false, "подробные логи запросов")
 	flag.Parse()
@@ -87,7 +77,7 @@ func run() error {
 
 	apiKey := strings.TrimSpace(os.Getenv("RIOT_API_KEY"))
 	if apiKey == "" {
-		return errors.New("RIOT_API_KEY не задан (положи его в .env — в корне репозитория или в backend/)")
+		return errors.New("RIOT_API_KEY не задан (положи его в .env - в корне репозитория или в backend/)")
 	}
 
 	logLevel := slog.LevelWarn
@@ -135,8 +125,6 @@ func run() error {
 	return nil
 }
 
-// resolveRedisAddr выбирает адрес Redis: явный флаг, иначе REDIS_ADDR,
-// а memorySentinel означает работу без Redis.
 func resolveRedisAddr(flagValue string) string {
 	switch flagValue {
 	case "":
@@ -165,7 +153,7 @@ func check(
 	matchID string,
 	detailed bool,
 ) error {
-	// 1. Account-V1 — regional routing.
+	// 1. Account-V1 - regional routing.
 	started := time.Now()
 
 	account, err := client.GetAccountByRiotID(ctx, region, gameName, tagLine)
@@ -175,7 +163,7 @@ func check(
 
 	_, _ = fmt.Fprintf(out, "[1/5] account-v1     → puuid %s%s\n", account.PUUID, took(started))
 
-	// 2. Summoner-V4 — platform routing.
+	// 2. Summoner-V4 - platform routing.
 	started = time.Now()
 
 	summoner, err := client.GetSummonerByPUUID(ctx, region, account.PUUID)
@@ -186,7 +174,7 @@ func check(
 	_, _ = fmt.Fprintf(out, "[2/5] summoner-v4    → уровень %d, иконка %d%s\n",
 		summoner.SummonerLevel, summoner.ProfileIconID, took(started))
 
-	// 3. League-V4 — platform routing.
+	// 3. League-V4 - platform routing.
 	started = time.Now()
 
 	entries, err := client.GetLeagueEntriesByPUUID(ctx, region, account.PUUID)
@@ -196,7 +184,7 @@ func check(
 
 	printRanks(out, entries, took(started))
 
-	// 4. Match-V5, список id — regional routing.
+	// 4. Match-V5, список id - regional routing.
 	started = time.Now()
 
 	ids, err := client.GetMatchIDsByPUUID(ctx, region, account.PUUID, 0, count)
@@ -222,7 +210,7 @@ func check(
 		matchID = ids[0]
 	}
 
-	// 5. Match-V5, детали матча — regional routing.
+	// 5. Match-V5, детали матча - regional routing.
 	started = time.Now()
 
 	detail, err := client.GetMatch(ctx, region, matchID)
@@ -233,7 +221,6 @@ func check(
 	return printMatch(out, detail, account.PUUID, took(started), detailed)
 }
 
-// took форматирует длительность шага — по ней видно попадания в кэш.
 func took(started time.Time) string {
 	return fmt.Sprintf("  [%s]", time.Since(started).Round(time.Millisecond))
 }
@@ -293,8 +280,6 @@ func printMatch(out io.Writer, detail *riot.MatchDetail, puuid, took string, det
 	return nil
 }
 
-// splitRiotID разбирает GameName#TagLine. Режем по последнему «#»: символ
-// запрещён в игровых именах, но так надёжнее.
 func splitRiotID(riotID string) (gameName, tagLine string, err error) {
 	idx := strings.LastIndex(riotID, "#")
 	if idx <= 0 || idx == len(riotID)-1 {

@@ -1,5 +1,3 @@
-// Package domain описывает модели предметной области — то, что лежит в БД и
-// уезжает в API. Форма ответов Riot дальше пакета riot не протекает.
 package domain
 
 import (
@@ -7,7 +5,6 @@ import (
 	"time"
 )
 
-// Summoner — отслеживаемый саммонер.
 type Summoner struct {
 	PUUID         string
 	RiotID        string // GameName из Riot ID
@@ -19,12 +16,10 @@ type Summoner struct {
 	CreatedAt     time.Time
 }
 
-// FullRiotID возвращает Riot ID в привычном виде GameName#TagLine.
 func (s Summoner) FullRiotID() string {
 	return s.RiotID + "#" + s.TagLine
 }
 
-// RankedStat — ранговый снапшот по одной очереди.
 type RankedStat struct {
 	PUUID        string
 	QueueType    string // RANKED_SOLO_5x5, RANKED_FLEX_SR, ...
@@ -36,7 +31,6 @@ type RankedStat struct {
 	UpdatedAt    time.Time
 }
 
-// Match — матч целиком, общий для всех участников.
 type Match struct {
 	MatchID      string
 	GameCreation time.Time
@@ -44,18 +38,15 @@ type Match struct {
 	QueueID      int
 	GameVersion  string
 
-	// RawData — исходный JSON Match-V5, ложится в matches.raw_data
+	// RawData - исходный JSON Match-V5, ложится в matches.raw_data
 	// (DECISIONS.md, отклонение 1).
 	RawData json.RawMessage
 }
 
-// DurationSeconds возвращает длительность в секундах — в таком виде она лежит
-// в колонке matches.game_duration.
 func (m Match) DurationSeconds() int {
 	return int(m.GameDuration.Seconds())
 }
 
-// MatchParticipant — участие одного игрока в матче.
 type MatchParticipant struct {
 	MatchID      string
 	PUUID        string
@@ -68,8 +59,6 @@ type MatchParticipant struct {
 	GoldEarned   int
 }
 
-// KDA — классическое (K+A)/D. При нуле смертей делить не на что, поэтому
-// возвращаем сумму убийств и ассистов (perfect KDA).
 func (p MatchParticipant) KDA() float64 {
 	if p.Deaths == 0 {
 		return float64(p.Kills + p.Assists)

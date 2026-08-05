@@ -9,9 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// chdirToNestedTempDir создаёт структуру root/backend, делает backend текущим
-// каталогом и возвращает путь к корню — так же выглядит запуск `go run ./cmd/...`
-// из каталога модуля.
 func chdirToNestedTempDir(t *testing.T) string {
 	t.Helper()
 
@@ -23,8 +20,6 @@ func chdirToNestedTempDir(t *testing.T) string {
 	return root
 }
 
-// unsetAfter возвращает окружение в исходное состояние: LoadDotEnv меняет его
-// на весь процесс, и без уборки переменные протекли бы в соседние тесты.
 func unsetAfter(t *testing.T, names ...string) {
 	t.Helper()
 

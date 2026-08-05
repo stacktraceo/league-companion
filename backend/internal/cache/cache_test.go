@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fixture — реализация кэша вместе со способом «промотать время». Обе реализации
-// обязаны вести себя одинаково, поэтому набор проверок ниже общий.
 type fixture struct {
 	cache   Cache
 	advance func(d time.Duration)
@@ -70,7 +68,7 @@ func runCacheContract(t *testing.T, newFixture func(*testing.T) fixture) {
 
 	ctx := context.Background()
 
-	t.Run("неизвестный ключ — промах без ошибки", func(t *testing.T) {
+	t.Run("неизвестный ключ - промах без ошибки", func(t *testing.T) {
 		f := newFixture(t)
 
 		value, ok, err := f.cache.Get(ctx, "нет-такого")
@@ -100,9 +98,9 @@ func runCacheContract(t *testing.T, newFixture func(*testing.T) fixture) {
 		assert.Equal(t, []byte("новое"), value)
 	})
 
-	// League-V4 у игрока без ранга отдаёт пустой массив — это валидный ответ,
+	// League-V4 у игрока без ранга отдаёт пустой массив - это валидный ответ,
 	// и кэшировать его надо, иначе такой игрок каждый раз ходит в Riot.
-	t.Run("пустое значение — попадание, а не промах", func(t *testing.T) {
+	t.Run("пустое значение - попадание, а не промах", func(t *testing.T) {
 		f := newFixture(t)
 		require.NoError(t, f.cache.Set(ctx, "ключ", []byte(`[]`), time.Minute))
 
@@ -123,7 +121,7 @@ func runCacheContract(t *testing.T, newFixture func(*testing.T) fixture) {
 		assert.True(t, ok)
 	})
 
-	t.Run("после TTL — промах", func(t *testing.T) {
+	t.Run("после TTL - промах", func(t *testing.T) {
 		f := newFixture(t)
 		require.NoError(t, f.cache.Set(ctx, "ключ", []byte("значение"), time.Minute))
 
@@ -221,8 +219,6 @@ func TestMemoryIsSafeForConcurrentUse(t *testing.T) {
 	wg.Wait()
 }
 
-// go-redis по умолчанию пишет свои ошибки мимо slog — проверяем, что перехват
-// работает и структурные логи остаются единственным каналом (SPEC.md 3.6).
 func TestRedisLoggerWritesToSlog(t *testing.T) {
 	var buf bytes.Buffer
 

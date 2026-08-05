@@ -5,16 +5,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import java.time.Instant
 
-/**
- * Ранг в одной очереди — снапшот на момент последней синхронизации.
- * Зеркало таблицы `ranked_stats`.
- *
- * Отдельная таблица, а не JSON-колонка в [SummonerEntity]: очередей несколько
- * (solo/flex), и экрану профиля они нужны как список, а не как строка.
- *
- * Индекс по `puuid` не заводится отдельно — колонка левая в составном первичном
- * ключе, её индекс Room создаёт сам.
- */
 @Entity(
     tableName = "ranked_stats",
     primaryKeys = ["puuid", "queue_type"],

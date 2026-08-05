@@ -5,7 +5,7 @@
   «CLEARTEXT communication to 10.0.2.2 not permitted».
 
   Послабление живёт только в debug-варианте и только для двух адресов, поэтому
-  release-сборка остаётся HTTPS-only — а не «ослаблено временно и так и осталось».
+  release-сборка остаётся HTTPS-only - а не «ослаблено временно и так и осталось».
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">

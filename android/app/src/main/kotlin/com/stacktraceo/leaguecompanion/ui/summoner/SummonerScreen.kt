@@ -49,7 +49,7 @@ fun SummonerScreen(
     // LaunchedEffect вызван быть не может.
     val errorText = state.error?.asText()
 
-    // Снекбар — только когда контент уже есть. Если показывать нечего, ошибка
+    // Снекбар - только когда контент уже есть. Если показывать нечего, ошибка
     // занимает середину экрана и предлагает повтор, а не мигает и исчезает.
     LaunchedEffect(errorText, state.hasContent) {
         if (errorText != null && state.hasContent) {
@@ -66,7 +66,7 @@ fun SummonerScreen(
                 title = { Text(state.summoner?.displayName ?: stringResource(R.string.summoner_title_fallback)) },
                 // Текстом, а не иконкой: material-icons в зависимостях нет, и тянуть
                 // целый пакет ради одной стрелки при отказе от картинок в этой вехе
-                // незачем — слово ещё и доступнее для screen reader'а.
+                // незачем - слово ещё и доступнее для screen reader'а.
                 navigationIcon = {
                     TextButton(onClick = onBack) {
                         Text(stringResource(R.string.action_back))
@@ -124,7 +124,7 @@ private fun Content(
 
             if (state.matches.isEmpty()) {
                 // После POST /summoners бэкенд отвечает раньше, чем синхронизация
-                // догрузит матчи, — пустая лента здесь ожидаемое состояние.
+                // догрузит матчи, - пустая лента здесь ожидаемое состояние.
                 item(key = "empty") { EmptyState(message = stringResource(R.string.summoner_no_matches)) }
             }
 

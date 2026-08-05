@@ -12,7 +12,7 @@ private val Gold = Color(0xFFC8AA6E)
 private val Teal = Color(0xFF0AC8B9)
 private val Navy = Color(0xFF101820)
 
-// Победа и поражение — единственная пара, которую экран матчей обязан различать
+// Победа и поражение - единственная пара, которую экран матчей обязан различать
 // с одного взгляда (SPEC.md 4.2, пункт 3).
 val WinColor = Color(0xFF2E7D5B)
 val LossColor = Color(0xFF9B3B3B)

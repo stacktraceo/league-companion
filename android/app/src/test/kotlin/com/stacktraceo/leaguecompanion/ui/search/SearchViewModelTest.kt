@@ -23,12 +23,6 @@ import org.junit.Rule
 import org.junit.Test
 import java.io.IOException
 
-/**
- * ViewModel проверяется поверх **настоящего** репозитория, собранного на фейковых
- * DAO и API из `data/repository/Fakes.kt`. Мок репозитория проверял бы только то,
- * что ViewModel зовёт метод с таким именем; здесь же прогоняется вся цепочка до
- * разбора ошибки включительно.
- */
 class SearchViewModelTest {
     @get:Rule
     val mainDispatcher = MainDispatcherRule()
@@ -81,7 +75,7 @@ class SearchViewModelTest {
             advanceUntilIdle()
 
             assertEquals(SearchError.Failed(AppError.NoNetwork), viewModel.state.value.error)
-            // Набирать ник заново из-за упавшего бэкенда — грубо.
+            // Набирать ник заново из-за упавшего бэкенда - грубо.
             assertEquals("Faker#KR1", viewModel.state.value.input)
         }
 
@@ -131,14 +125,10 @@ class SearchViewModelTest {
             viewModel.onInputChange("   ")
             advanceUntilIdle()
 
-            // Пробелы — не ввод: иначе запрос ушёл бы с пустым ником и вернулся 400.
+            // Пробелы - не ввод: иначе запрос ушёл бы с пустым ником и вернулся 400.
             assertFalse(viewModel.state.value.canSubmit)
         }
 
-    /**
-     * `state` собран через `stateIn(WhileSubscribed)`: без подписчика upstream не
-     * запускается и `value` навсегда остался бы начальным.
-     */
     private fun TestScope.observeState(viewModel: SearchViewModel) {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect { } }
     }

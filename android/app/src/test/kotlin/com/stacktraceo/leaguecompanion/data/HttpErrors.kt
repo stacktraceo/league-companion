@@ -7,14 +7,6 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.HttpException
 import retrofit2.Response
 
-/**
- * Ошибка бэкенда в том виде, в каком её бросает Retrofit.
- *
- * Собирать её приходится вручную: у [HttpException] нет конструктора «код + тело»,
- * а тесты разных слоёв (маппер ошибок, репозитории, ViewModel'и) должны получать
- * ровно один и тот же объект — иначе легко проверить обработку ошибки, которой
- * в бою не бывает.
- */
 fun httpException(
     code: Int,
     body: String,

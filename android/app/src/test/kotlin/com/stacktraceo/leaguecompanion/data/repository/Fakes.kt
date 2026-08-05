@@ -24,18 +24,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody
 import okhttp3.ResponseBody.Companion.toResponseBody
 
-/**
- * Подделки под DAO и API.
- *
- * DAO хранят строки в Map с теми же ключами, что первичные ключи таблиц, — так
- * подделка повторяет главное свойство `@Upsert`: повторная запись обновляет строку,
- * а не добавляет вторую. Методы с телом (`upsertWithRanked`, `upsertPage`) не
- * переопределяются: тесты прогоняют настоящую логику из интерфейсов DAO, а не её
- * пересказ.
- *
- * Чего подделки не воспроизводят: атомарности транзакций и внешних ключей —
- * это проверяется живьём на debug-экране.
- */
 class FakeSummonerDao : SummonerDao {
     private val summoners = MutableStateFlow<Map<String, SummonerEntity>>(emptyMap())
     private val ranked = MutableStateFlow<Map<Pair<String, String>, RankedStatEntity>>(emptyMap())
@@ -133,7 +121,6 @@ class FakeLeagueApi : LeagueApi {
     var statsResponse: StatsDto? = null
     var matchDetailJson: String? = null
 
-    /** Подставляется тестом, чтобы следующий вызов упал так же, как настоящий Retrofit. */
     var failure: Throwable? = null
 
     val matchRequests = mutableListOf<Pair<Int, Int>>()

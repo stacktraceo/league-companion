@@ -17,7 +17,6 @@ const (
 	testDSN       = "postgres://lc:s3cret@localhost:5432/league_companion?sslmode=disable"
 )
 
-// setRequired задаёт минимальный набор обязательных переменных.
 func setRequired(t *testing.T) {
 	t.Helper()
 	t.Setenv("RIOT_API_KEY", testRiotKey)
@@ -25,8 +24,6 @@ func setRequired(t *testing.T) {
 	t.Setenv("CLIENT_API_KEY", testClientKey)
 }
 
-// clearOptional сбрасывает необязательные переменные, чтобы окружение разработчика
-// не протекало в тест.
 func clearOptional(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{"REDIS_ADDR", "HTTP_PORT", "LOG_LEVEL", "RIOT_HTTP_TIMEOUT", "SYNC_INTERVAL"} {
@@ -71,8 +68,6 @@ func TestLoadOverrides(t *testing.T) {
 	assert.Equal(t, ":9090", cfg.Addr())
 }
 
-// SYNC_INTERVAL=0 — валидное значение: так фоновая синхронизация выключается,
-// например чтобы не тратить лимит ключа на отладке.
 func TestLoadSyncIntervalZeroDisablesBackgroundSync(t *testing.T) {
 	setRequired(t)
 	clearOptional(t)
@@ -92,7 +87,7 @@ func TestLoadReportsAllMissingRequiredAtOnce(t *testing.T) {
 	_, err := Load()
 	require.Error(t, err)
 
-	// Все три проблемы — в одной ошибке, чинить по одной не приходится.
+	// Все три проблемы - в одной ошибке, чинить по одной не приходится.
 	assert.Contains(t, err.Error(), "RIOT_API_KEY")
 	assert.Contains(t, err.Error(), "DATABASE_URL")
 	assert.Contains(t, err.Error(), "CLIENT_API_KEY")
@@ -149,7 +144,6 @@ func TestLogLevelAliases(t *testing.T) {
 	}
 }
 
-// Ключевая проверка требования DECISIONS.md: секреты не должны утекать в логи.
 func TestLogValueRedactsSecrets(t *testing.T) {
 	setRequired(t)
 	clearOptional(t)

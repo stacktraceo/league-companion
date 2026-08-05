@@ -31,11 +31,6 @@ func fixture(t *testing.T, name string) string {
 	return string(data)
 }
 
-// newTestClient поднимает httptest-сервер с заданным обработчиком и возвращает
-// клиент, направленный на него.
-//
-// Повторы по умолчанию выключены: тесты ниже проверяют разбор одного ответа, а
-// с ретраями они ждали бы настоящий backoff. Сами повторы проверяются в retry_test.go.
 func newTestClient(t *testing.T, handler http.HandlerFunc, opts ...Option) *Client {
 	t.Helper()
 
@@ -47,13 +42,12 @@ func newTestClient(t *testing.T, handler http.HandlerFunc, opts ...Option) *Clie
 	return New(testAPIKey, options...)
 }
 
-// jsonHandler отдаёт готовое тело и записывает пришедший запрос.
 func jsonHandler(t *testing.T, body string, captured **http.Request) http.HandlerFunc {
 	t.Helper()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if captured != nil {
-			// Именно Background, а не r.Context(): клон живёт дольше хендлера —
+			// Именно Background, а не r.Context(): клон живёт дольше хендлера -
 			// тест разбирает его, когда контекст запроса уже отменён.
 			clone := r.Clone(context.Background()) //nolint:contextcheck // клон намеренно переживает запрос
 			*captured = clone
@@ -75,7 +69,7 @@ func TestClientSendsAPIKeyHeader(t *testing.T) {
 	assert.Equal(t, testAPIKey, got.Header.Get(apiKeyHeader))
 	assert.Equal(t, "application/json", got.Header.Get("Accept"))
 
-	// Ключ не должен утекать в query-параметры — только заголовок.
+	// Ключ не должен утекать в query-параметры - только заголовок.
 	assert.NotContains(t, got.URL.RawQuery, testAPIKey)
 }
 
@@ -141,7 +135,6 @@ func TestGetLeagueEntriesByPUUID(t *testing.T) {
 	assert.Equal(t, "/lol/league/v4/entries/by-puuid/"+testPUUID, got.URL.Path)
 }
 
-// У безранговых саммонеров League-V4 отдаёт пустой массив — это валидный ответ.
 func TestGetLeagueEntriesUnranked(t *testing.T) {
 	client := newTestClient(t, jsonHandler(t, "[]", nil))
 
@@ -212,8 +205,6 @@ func TestGetMatch(t *testing.T) {
 	assert.Equal(t, "/lol/match/v5/matches/EUW1_7000000001", got.URL.Path)
 }
 
-// Сырой JSON обязан сохраняться байт-в-байт: из него наполняется matches.raw_data,
-// и в нём должны остаться поля, которых нет в DTO (DECISIONS.md, отклонение 1).
 func TestGetMatchPreservesRawJSON(t *testing.T) {
 	raw := fixture(t, "match.json")
 	client := newTestClient(t, jsonHandler(t, raw, nil))
@@ -250,7 +241,6 @@ func TestNotFound(t *testing.T) {
 	assert.False(t, IsRetryable(err), "404 повторять бессмысленно")
 }
 
-// 401/403 на dev-ключе почти всегда означает, что ключ протух (SPEC.md 3.2).
 func TestUnauthorized(t *testing.T) {
 	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden} {
 		t.Run(http.StatusText(status), func(t *testing.T) {
@@ -287,7 +277,6 @@ func TestRateLimited(t *testing.T) {
 	assert.True(t, IsRetryable(err))
 }
 
-// Если Riot не прислал Retry-After, паузу всё равно надо выдержать.
 func TestRateLimitedWithoutRetryAfterHeader(t *testing.T) {
 	for _, header := range []string{"", "не число", "0", "-3"} {
 		t.Run("header="+header, func(t *testing.T) {
@@ -387,8 +376,6 @@ func TestContextCancellation(t *testing.T) {
 	assert.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
-// recordingTransport перехватывает запросы, не выпуская их в сеть, — так можно
-// проверить реальный хост Riot, а не подменённый через WithBaseURL.
 type recordingTransport struct {
 	mu       sync.Mutex
 	requests []*http.Request
@@ -413,8 +400,6 @@ func (t *recordingTransport) RoundTrip(req *http.Request) (*http.Response, error
 	}, nil
 }
 
-// Главная проверка риска из SPEC.md 7: каждый эндпоинт должен уходить на свой
-// вид роутинга. Summoner/League — platform-хост, Account/Match — regional.
 func TestEndpointsUseCorrectRoutingHosts(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -489,7 +474,7 @@ func TestEndpointsUseCorrectRoutingHosts(t *testing.T) {
 			transport := &recordingTransport{body: "[]"}
 			client := New(testAPIKey, WithHTTPClient(&http.Client{Transport: transport}))
 
-			// Ответ "[]" не подходит объектным DTO — ошибка разбора здесь ожидаема
+			// Ответ "[]" не подходит объектным DTO - ошибка разбора здесь ожидаема
 			// и не мешает проверить адрес запроса.
 			_ = tc.call(client)
 

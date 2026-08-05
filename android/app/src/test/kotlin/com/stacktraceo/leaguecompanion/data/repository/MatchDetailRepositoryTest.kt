@@ -72,7 +72,7 @@ class MatchDetailRepositoryTest {
             val alien = repository.observe("KR_1", TEST_PUUID).first()
 
             assertEquals(1, mine?.teams?.flatMap { it.players }?.count { it.tracked })
-            // Один и тот же матч может лежать в кэше для нескольких саммонеров —
+            // Один и тот же матч может лежать в кэше для нескольких саммонеров -
             // подсветка не должна быть вшита в сохранённые данные.
             assertEquals(0, alien?.teams?.flatMap { it.players }?.count { it.tracked })
         }

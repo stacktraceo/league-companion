@@ -8,21 +8,16 @@ import (
 	"strconv"
 )
 
-// Ограничения Match-V5 на пагинацию списка match id.
 const (
-	// MaxMatchIDCount — максимум, который принимает Riot за один запрос.
+	// MaxMatchIDCount - максимум, который принимает Riot за один запрос.
 	MaxMatchIDCount = 100
 
-	// DefaultMatchIDCount — размер страницы по умолчанию (SPEC.md 3.2).
+	// DefaultMatchIDCount - размер страницы по умолчанию (SPEC.md 3.2).
 	DefaultMatchIDCount = 20
 )
 
-// ErrEmptyMatchID возвращается при пустом идентификаторе матча.
 var ErrEmptyMatchID = errors.New("riot: matchId обязателен")
 
-// GetMatchIDsByPUUID возвращает идентификаторы матчей саммонера, свежие первыми.
-//
-// Match-V5 живёт на regional routing'е (SPEC.md 3.2).
 func (c *Client) GetMatchIDsByPUUID(ctx context.Context, region, puuid string, start, count int) ([]string, error) {
 	if puuid == "" {
 		return nil, ErrEmptyPUUID
@@ -58,10 +53,6 @@ func (c *Client) GetMatchIDsByPUUID(ctx context.Context, region, puuid string, s
 	return ids, nil
 }
 
-// GetMatch возвращает детали матча вместе с исходным JSON.
-//
-// Сырое тело кладётся в matches.raw_data (DECISIONS.md, отклонение 1), поэтому
-// возвращается всегда, а не только когда о нём попросили.
 func (c *Client) GetMatch(ctx context.Context, region, matchID string) (*MatchDetail, error) {
 	if matchID == "" {
 		return nil, ErrEmptyMatchID
@@ -76,7 +67,7 @@ func (c *Client) GetMatch(ctx context.Context, region, matchID string) (*MatchDe
 
 	var match MatchDTO
 
-	// matchTTL = 0: матч неизменяем и целиком ложится в matches.raw_data —
+	// matchTTL = 0: матч неизменяем и целиком ложится в matches.raw_data -
 	// кэшировать сотни килобайт ещё и в Redis незачем.
 	req := request{host: route.Host(), path: path, ttl: matchTTL, out: &match}
 

@@ -18,37 +18,31 @@ import (
 	"github.com/stacktraceo/league-companion/backend/internal/syncer"
 )
 
-// Пагинация ленты матчей (SPEC.md 3.4).
 const (
 	defaultLimit = 20
 	maxLimit     = 100
 
-	// maxRequestBody — тело POST /summoners крошечное; читать больше незачем.
+	// maxRequestBody - тело POST /summoners крошечное; читать больше незачем.
 	maxRequestBody = 4 << 10
 )
 
-// ProfileSyncer резолвит Riot ID и сохраняет профиль.
 type ProfileSyncer interface {
 	SyncProfile(ctx context.Context, region, gameName, tagLine string) (domain.Summoner, bool, error)
 }
 
-// SyncQueue ставит саммонера в очередь на загрузку матчей.
 type SyncQueue interface {
 	Enqueue(puuid string, count int) bool
 }
 
-// SummonerStore — чтение саммонеров.
 type SummonerStore interface {
 	ByPUUID(ctx context.Context, puuid string) (domain.Summoner, error)
 	ByRiotID(ctx context.Context, region, gameName, tagLine string) (domain.Summoner, error)
 }
 
-// RankedStore — чтение ранговых снапшотов.
 type RankedStore interface {
 	ByPUUID(ctx context.Context, puuid string) ([]domain.RankedStat, error)
 }
 
-// MatchStore — чтение матчей.
 type MatchStore interface {
 	ListByPUUID(ctx context.Context, puuid string, limit, offset int) ([]storage.MatchListItem, error)
 	CountByPUUID(ctx context.Context, puuid string) (int, error)
@@ -56,11 +50,6 @@ type MatchStore interface {
 	ParticipationsSince(ctx context.Context, puuid string, since time.Time) ([]domain.MatchParticipant, error)
 }
 
-// createSummoner добавляет саммонера по Riot ID.
-//
-// Профиль и ранг тянутся синхронно — три запроса к Riot, около полутора секунд.
-// Матчи (два десятка запросов) уходят в фон: держать ради них HTTP-соединение
-// на полминуты незачем, а саммонер уже сохранён и доступен (SPEC.md 3.4).
 func createSummoner(
 	logger *slog.Logger,
 	service ProfileSyncer,
@@ -123,16 +112,6 @@ func createSummoner(
 	}
 }
 
-// respondStale отдаёт последний сохранённый снапшот, когда Riot недоступен
-// (SPEC.md 3.4). Сообщает, ответил ли он: если снапшота нет, отвечать нечем и
-// вызывающий идёт обычным путём с ошибкой.
-//
-// Статус — 200, а не 502 с данными: тело с настоящими данными под кодом ошибки
-// клиенты и прокси обрабатывают как ошибку, и смысл флага теряется. 502 остаётся
-// ровно для случая, когда отдать нечего, — и тогда код честно значит «не выполнено».
-//
-// В очередь тут ничего не ставим: Riot только что не ответил, и задача, которая
-// гарантированно упадёт в фоне, — лишняя строка в логе.
 func respondStale(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -148,7 +127,7 @@ func respondStale(
 
 	summoner, err := summoners.ByRiotID(r.Context(), region, gameName, tagLine)
 	if err != nil {
-		// Ни свежих данных, ни сохранённых — обычная ошибка, её и отдадим.
+		// Ни свежих данных, ни сохранённых - обычная ошибка, её и отдадим.
 		return false
 	}
 
@@ -169,13 +148,13 @@ func respondStale(
 func validateCreateRequest(gameName, tagLine, region string) (string, bool) {
 	switch {
 	case gameName == "":
-		return "riotId обязателен — это игровое имя без тега", false
+		return "riotId обязателен - это игровое имя без тега", false
 
 	case strings.Contains(gameName, "#"):
-		return "riotId — только игровое имя; тег передаётся отдельно в tagLine", false
+		return "riotId - только игровое имя; тег передаётся отдельно в tagLine", false
 
 	case tagLine == "":
-		return "tagLine обязателен — это часть Riot ID после «#»", false
+		return "tagLine обязателен - это часть Riot ID после «#»", false
 
 	case region == "":
 		return "region обязателен, допустимые: " + regionList(), false
@@ -194,10 +173,6 @@ func regionList() string {
 	return strings.Join(riot.SupportedRegions(), ", ")
 }
 
-// getSummoner отдаёт профиль с рангами из БД.
-//
-// В Riot не ходим вовсе: ответ по закэшированным данным обязан укладываться
-// в 200 мс (SPEC.md 3.6), а свежесть обеспечивает фоновая синхронизация.
 func getSummoner(logger *slog.Logger, summoners SummonerStore, ranked RankedStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		puuid := chi.URLParam(r, "puuid")
@@ -205,7 +180,7 @@ func getSummoner(logger *slog.Logger, summoners SummonerStore, ranked RankedStor
 		summoner, err := summoners.ByPUUID(r.Context(), puuid)
 		if err != nil {
 			respondStorageError(w, r, logger, err,
-				"summoner_not_found", "саммонер не отслеживается — сначала добавь его через POST /api/v1/summoners")
+				"summoner_not_found", "саммонер не отслеживается - сначала добавь его через POST /api/v1/summoners")
 
 			return
 		}
@@ -221,7 +196,6 @@ func getSummoner(logger *slog.Logger, summoners SummonerStore, ranked RankedStor
 	}
 }
 
-// listMatches отдаёт страницу ленты матчей саммонера.
 func listMatches(logger *slog.Logger, summoners SummonerStore, matches MatchStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		puuid := chi.URLParam(r, "puuid")
@@ -260,9 +234,6 @@ func listMatches(logger *slog.Logger, summoners SummonerStore, matches MatchStor
 	}
 }
 
-// parsePagination разбирает limit и offset. Отсутствующие параметры берут значения
-// по умолчанию, некорректные — отвергаются: молча подставлять свои числа хуже,
-// чем сказать клиенту, что он ошибся.
 func parsePagination(r *http.Request) (limit, offset int, err error) {
 	query := r.URL.Query()
 

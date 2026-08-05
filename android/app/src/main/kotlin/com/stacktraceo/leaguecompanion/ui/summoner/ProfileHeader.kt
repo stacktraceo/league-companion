@@ -25,7 +25,6 @@ import com.stacktraceo.leaguecompanion.ui.image.DataDragon
 import com.stacktraceo.leaguecompanion.ui.image.RemoteIcon
 import java.time.Instant
 
-/** Профиль по SPEC.md 4.2: уровень, ранг (тир + LP), общий W/L. */
 @Composable
 fun ProfileHeader(
     summoner: Summoner,
@@ -58,7 +57,7 @@ fun ProfileHeader(
             }
 
             if (summoner.ranked.isEmpty()) {
-                // Неранкед — это не ошибка и не пустой экран: у саммонера просто нет
+                // Неранкед - это не ошибка и не пустой экран: у саммонера просто нет
                 // рейтинговых игр в текущем сезоне.
                 Text(
                     text = stringResource(R.string.profile_unranked),
@@ -73,15 +72,6 @@ fun ProfileHeader(
     }
 }
 
-/**
- * Возраст данных, а не просто дата.
- *
- * Ранг и LP приезжают с бэкенда и замирают, как только тот перестаёт добираться до
- * Riot, — например, на протухшем 24-часовом ключе. До этой строки экран показывал
- * недельный LP ровно так же уверенно, как минутный, и отличить их было нечем.
- * Порога «уже устарело» здесь намеренно нет: он был бы выдуманным числом, а «6 days
- * ago» человек оценивает сам.
- */
 @Composable
 private fun SyncedAt(lastSyncedAt: Instant?) {
     val text =
@@ -115,11 +105,6 @@ private fun RankedRow(ranked: RankedStat) {
     }
 }
 
-/**
- * Очереди Riot приходят машинными именами (`RANKED_SOLO_5x5`). Незнакомую отдаём
- * как есть: Riot заводит новые очереди, и показать её сырым именем лучше, чем
- * спрятать строку целиком.
- */
 @Composable
 private fun queueLabel(queueType: String): String =
     when (queueType) {

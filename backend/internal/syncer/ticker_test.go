@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fakeTracked отдаёт заготовленный список отслеживаемых саммонеров.
 type fakeTracked struct {
 	puuids []string
 	err    error
@@ -46,8 +45,6 @@ func (f *fakeTracked) Calls() int {
 	return f.calls
 }
 
-// fakeBatchQueue считает принятые задачи и умеет задерживать их завершение —
-// так проверяется guard от наложения прогонов.
 type fakeBatchQueue struct {
 	mu       sync.Mutex
 	accepted []string
@@ -114,8 +111,6 @@ func TestTickerRunOnceQueuesEveryTrackedSummoner(t *testing.T) {
 	assert.ElementsMatch(t, tracked.puuids, queue.Accepted())
 }
 
-// Guard от наложения (DECISIONS.md, отклонение 4): пока предыдущий прогон не завершён,
-// следующий тик пропускается, а не встаёт в очередь.
 func TestTickerSkipsTickWhileRunning(t *testing.T) {
 	tracked := &fakeTracked{puuids: []string{"puuid-1"}}
 	hold := make(chan struct{})
@@ -137,13 +132,11 @@ func TestTickerSkipsTickWhileRunning(t *testing.T) {
 	close(hold)
 	assert.Equal(t, 1, <-firstDone)
 
-	// Guard снят — следующий прогон снова работает.
+	// Guard снят - следующий прогон снова работает.
 	assert.Equal(t, 1, ticker.runOnce(context.Background()))
 	assert.Len(t, queue.Accepted(), 2)
 }
 
-// Пропущенный тик не копится: после освобождения guard'а выполняется один прогон,
-// а не столько, сколько тиков пропустили.
 func TestTickerSkippedTicksDoNotQueueUp(t *testing.T) {
 	tracked := &fakeTracked{puuids: []string{"puuid-1"}}
 	hold := make(chan struct{})
@@ -165,8 +158,6 @@ func TestTickerSkippedTicksDoNotQueueUp(t *testing.T) {
 	assert.Len(t, queue.Accepted(), 1, "пять пропущенных тиков не превратились в пять прогонов")
 }
 
-// Переполненная очередь не должна оставить guard навсегда занятым: у отброшенной
-// задачи никто не позовёт done, и счётчик ожидания снимает сам тикер.
 func TestTickerSurvivesFullQueue(t *testing.T) {
 	tracked := &fakeTracked{puuids: []string{"puuid-1", "puuid-2"}}
 	queue := &fakeBatchQueue{reject: true}
@@ -193,7 +184,6 @@ func TestTickerWithoutTrackedSummoners(t *testing.T) {
 	assert.Empty(t, queue.Accepted())
 }
 
-// Недоступная база не должна ронять тикер: следующий тик попробует снова.
 func TestTickerSurvivesStoreFailure(t *testing.T) {
 	tracked := &fakeTracked{err: errors.New("база прилегла")}
 	ticker := newTestTicker(tracked, &fakeBatchQueue{}, time.Minute)
@@ -202,7 +192,6 @@ func TestTickerSurvivesStoreFailure(t *testing.T) {
 	assert.False(t, ticker.running.Load(), "guard снят даже при ошибке")
 }
 
-// Тикер действительно тикает: с коротким интервалом прогоны идут сами.
 func TestTickerFiresOnInterval(t *testing.T) {
 	tracked := &fakeTracked{puuids: []string{"puuid-1"}}
 	queue := &fakeBatchQueue{}
@@ -215,8 +204,6 @@ func TestTickerFiresOnInterval(t *testing.T) {
 		2*time.Second, time.Millisecond, "за два интервала должно пройти минимум два прогона")
 }
 
-// Первый прогон — по первому тику, а не на старте: иначе рестарты сервиса давали бы
-// всплеск запросов к Riot.
 func TestTickerDoesNotRunOnStart(t *testing.T) {
 	tracked := &fakeTracked{puuids: []string{"puuid-1"}}
 	queue := &fakeBatchQueue{}
@@ -230,8 +217,6 @@ func TestTickerDoesNotRunOnStart(t *testing.T) {
 	assert.Zero(t, tracked.Calls())
 }
 
-// Stop не должен зависать на незавершённой пачке — иначе остановка сервиса
-// растянулась бы до jobTimeout.
 func TestTickerStopDoesNotWaitForBatch(t *testing.T) {
 	tracked := &fakeTracked{puuids: []string{"puuid-1"}}
 	hold := make(chan struct{})
@@ -258,7 +243,6 @@ func TestTickerStopDoesNotWaitForBatch(t *testing.T) {
 	}
 }
 
-// Stop до Start не должен блокироваться на канале, который никто не закроет.
 func TestTickerStopWithoutStart(t *testing.T) {
 	ticker := newTestTicker(&fakeTracked{}, &fakeBatchQueue{}, time.Minute)
 
@@ -275,7 +259,6 @@ func TestTickerStopWithoutStart(t *testing.T) {
 	}
 }
 
-// Отмена контекста приложения выводит цикл, даже если Stop не звали.
 func TestTickerStopsOnContextCancel(t *testing.T) {
 	ticker := newTestTicker(&fakeTracked{}, &fakeBatchQueue{}, 5*time.Millisecond)
 
@@ -290,16 +273,6 @@ func TestTickerStopsOnContextCancel(t *testing.T) {
 	}
 }
 
-// Прогон длиннее интервала не должен приводить к прогонам подряд.
-//
-// Регрессия, найденная живой проверкой: time.Ticker буферизует один тик, поэтому тик,
-// случившийся во время долгого прогона, дожидался его конца и немедленно запускал
-// второй прогон — то самое «встаёт в очередь», которого DECISIONS.md (отклонение 4)
-// велит не допускать.
-//
-// Различает случаи именно пауза между прогонами: со сбросом накопленного тика она
-// не меньше интервала, без сброса — около нуля. Число прогонов тут не показатель:
-// при интервале короче прогона оно в обоих случаях диктуется длиной прогона.
 func TestTickerDropsTickAccumulatedDuringRun(t *testing.T) {
 	const (
 		interval = 300 * time.Millisecond
@@ -319,12 +292,10 @@ func TestTickerDropsTickAccumulatedDuringRun(t *testing.T) {
 
 	for i, gap := range gaps {
 		assert.Greater(t, gap, interval/2,
-			"пауза #%d между прогонами %s — накопленный тик не сброшен", i, gap)
+			"пауза #%d между прогонами %s - накопленный тик не сброшен", i, gap)
 	}
 }
 
-// slowBatchQueue завершает задачу с задержкой — так прогон становится длиннее
-// интервала — и запоминает, когда каждый прогон начался и закончился.
 type slowBatchQueue struct {
 	delay time.Duration
 
@@ -353,7 +324,6 @@ func (q *slowBatchQueue) Submit(_ string, _ int, done func()) bool {
 	return true
 }
 
-// Gaps возвращает паузы между завершением одного прогона и началом следующего.
 func (q *slowBatchQueue) Gaps() []time.Duration {
 	q.mu.Lock()
 	defer q.mu.Unlock()

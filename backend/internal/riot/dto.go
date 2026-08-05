@@ -2,20 +2,18 @@ package riot
 
 import "encoding/json"
 
-// DTO повторяют ответы Riot API один-в-один. Разбор в доменные модели —
+// DTO повторяют ответы Riot API один-в-один. Разбор в доменные модели -
 // в пакете domain, чтобы форма чужого API не протекала дальше клиента.
 //
 // Для MVP парсим только поля из SPEC.md 7 (KDA, CS, чемпион, золото); всё
 // остальное остаётся доступным через raw JSON матча (DECISIONS.md, отклонение 1).
 
-// AccountDTO — ответ Account-V1 /riot/account/v1/accounts/by-riot-id/{name}/{tag}.
 type AccountDTO struct {
 	PUUID    string `json:"puuid"`
 	GameName string `json:"gameName"`
 	TagLine  string `json:"tagLine"`
 }
 
-// SummonerDTO — ответ Summoner-V4 /lol/summoner/v4/summoners/by-puuid/{puuid}.
 type SummonerDTO struct {
 	PUUID         string `json:"puuid"`
 	ProfileIconID int    `json:"profileIconId"`
@@ -23,7 +21,6 @@ type SummonerDTO struct {
 	RevisionDate  int64  `json:"revisionDate"`
 }
 
-// LeagueEntryDTO — элемент ответа League-V4 /lol/league/v4/entries/by-puuid/{puuid}.
 type LeagueEntryDTO struct {
 	PUUID        string `json:"puuid"`
 	QueueType    string `json:"queueType"`
@@ -34,28 +31,25 @@ type LeagueEntryDTO struct {
 	Losses       int    `json:"losses"`
 }
 
-// MatchDTO — ответ Match-V5 /lol/match/v5/matches/{matchId}.
 type MatchDTO struct {
 	Metadata MatchMetadataDTO `json:"metadata"`
 	Info     MatchInfoDTO     `json:"info"`
 }
 
-// MatchMetadataDTO — блок metadata матча.
 type MatchMetadataDTO struct {
 	MatchID      string   `json:"matchId"`
 	DataVersion  string   `json:"dataVersion"`
 	Participants []string `json:"participants"`
 }
 
-// MatchInfoDTO — блок info матча.
 type MatchInfoDTO struct {
 	GameCreation int64 `json:"gameCreation"` // epoch millis
 
-	// GameDuration — секунды для матчей с патча 11.20 и позже, миллисекунды для
-	// более старых. Признак — наличие GameEndTimestamp; нормализуется в domain.
+	// GameDuration - секунды для матчей с патча 11.20 и позже, миллисекунды для
+	// более старых. Признак - наличие GameEndTimestamp; нормализуется в domain.
 	GameDuration int64 `json:"gameDuration"`
 
-	// GameEndTimestamp — epoch millis; отсутствует у матчей до патча 11.20.
+	// GameEndTimestamp - epoch millis; отсутствует у матчей до патча 11.20.
 	GameEndTimestamp int64 `json:"gameEndTimestamp"`
 
 	GameVersion  string           `json:"gameVersion"`
@@ -65,7 +59,6 @@ type MatchInfoDTO struct {
 	Participants []ParticipantDTO `json:"participants"`
 }
 
-// ParticipantDTO — статистика одного участника матча.
 type ParticipantDTO struct {
 	PUUID        string `json:"puuid"`
 	ChampionName string `json:"championName"`
@@ -85,15 +78,10 @@ type ParticipantDTO struct {
 	RiotIDTagline  string `json:"riotIdTagline"`
 }
 
-// CS — суммарное количество добитых миньонов и лесных монстров.
 func (p ParticipantDTO) CS() int {
 	return p.TotalMinionsKilled + p.NeutralMinionsKilled
 }
 
-// MatchDetail — распарсенный матч вместе с исходным JSON.
-//
-// Raw кладётся в matches.raw_data (DECISIONS.md, отклонение 1): расширение набора
-// полей в будущем не должно требовать повторных запросов к Riot.
 type MatchDetail struct {
 	Match MatchDTO
 	Raw   json.RawMessage

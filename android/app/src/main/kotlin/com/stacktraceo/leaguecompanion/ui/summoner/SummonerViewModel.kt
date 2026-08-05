@@ -23,20 +23,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * Состояние экрана — один класс с флагами, а не sealed-иерархия.
- *
- * Офлайн-first по своей природе комбинирует: данные уже есть, обновление идёт, а
- * прошлая попытка упала — всё одновременно. В sealed-варианте пришлось бы заводить
- * состояние на каждое сочетание, и «показать список, но с ошибкой сверху»
- * превратилось бы в отдельный случай вместо двух независимых полей.
- */
 data class SummonerUiState(
     val summoner: Summoner? = null,
     val matches: List<MatchListItem> = emptyList(),
-    /** Идёт обновление. При непустом кэше это индикатор, а не заслонка. */
     val refreshing: Boolean = false,
-    /** Ни одного ответа ещё не было — только в этом случае уместен спиннер по центру. */
     val firstLoad: Boolean = true,
     val error: AppError? = null,
     val canLoadMore: Boolean = false,
@@ -52,15 +42,6 @@ class SummonerViewModel
         private val summoners: SummonerRepository,
         private val matches: MatchRepository,
     ) : ViewModel() {
-        /**
-         * Аргумент читается по имени свойства маршрута, а не через `toRoute()`.
-         *
-         * `toRoute()` разбирает `android.os.Bundle`, которого в JVM-тестах нет —
-         * ViewModel можно было бы проверить только под Robolectric, то есть тащить
-         * инструментальный рантайм ради чтения одной строки. `SummonerRoute::puuid.name`
-         * при этом остаётся ссылкой на свойство: переименуют его — сломается сборка,
-         * а не рантайм.
-         */
         private val puuid: String = checkNotNull(savedStateHandle[SummonerRoute::puuid.name])
 
         private val visible = MutableStateFlow(MatchRepository.DEFAULT_PAGE_SIZE)
@@ -68,7 +49,6 @@ class SummonerViewModel
         private val firstLoad = MutableStateFlow(true)
         private val error = MutableStateFlow<AppError?>(null)
 
-        /** Сколько матчей у бэкенда всего; null — пока ни один ответ не пришёл. */
         private val total = MutableStateFlow<Int?>(null)
 
         @OptIn(ExperimentalCoroutinesApi::class)
@@ -76,7 +56,7 @@ class SummonerViewModel
 
         // Флаги собираются в один поток отдельно: у combine типизированные перегрузки
         // кончаются на пяти источниках, а их шесть. Вложенный combine честнее, чем
-        // подглядывание в .value изнутри — от последнего состояние не пересчиталось бы
+        // подглядывание в .value изнутри - от последнего состояние не пересчиталось бы
         // при изменении total, и кнопка «ещё» появлялась бы с опозданием на такт.
         private val progress =
             combine(refreshing, firstLoad, error, total) { refreshing, firstLoad, error, total ->
@@ -99,12 +79,6 @@ class SummonerViewModel
             refresh()
         }
 
-        /**
-         * Профиль и первая страница матчей тянутся параллельно: последовательно это
-         * было бы два круга по сети ради данных, которые не зависят друг от друга.
-         * Ошибка любой из половин показывается пользователю, но кэш не трогает —
-         * этим и куплено то, что провал обновления не очищает экран.
-         */
         fun refresh() {
             viewModelScope.launch {
                 refreshing.value = true
@@ -146,7 +120,6 @@ class SummonerViewModel
             }
         }
 
-        /** Ошибка показана — снекбар не должен всплывать снова на каждом пересоставе. */
         fun errorShown() {
             error.value = null
         }

@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// waitFor ждёт условие, не привязываясь к конкретной паузе: тесты на конкурентность
-// иначе флакают под нагрузкой.
 func waitFor(t *testing.T, timeout time.Duration, message string, condition func() bool) {
 	t.Helper()
 
@@ -31,7 +29,6 @@ func waitFor(t *testing.T, timeout time.Duration, message string, condition func
 	t.Fatalf("не дождались: %s", message)
 }
 
-// fakeSyncer позволяет держать задачу «в работе» столько, сколько нужно тесту.
 type fakeSyncer struct {
 	mu   sync.Mutex
 	seen []string
@@ -116,8 +113,6 @@ func TestRunnerProcessesEnqueuedJobs(t *testing.T) {
 	assert.ElementsMatch(t, []string{"puuid-1", "puuid-2", "puuid-3"}, service.Seen())
 }
 
-// HTTP-хендлер не должен ждать фон: при переполненной очереди Enqueue обязан
-// вернуться сразу и сказать «не взял».
 func TestEnqueueNeverBlocks(t *testing.T) {
 	service := &fakeSyncer{
 		started: make(chan string, 1),
@@ -137,7 +132,7 @@ func TestEnqueueNeverBlocks(t *testing.T) {
 
 	require.True(t, runner.Enqueue("занимает-очередь", 10))
 
-	// Очередь на 1 забита, единственный воркер занят — эта задача должна отвалиться.
+	// Очередь на 1 забита, единственный воркер занят - эта задача должна отвалиться.
 	done := make(chan bool, 1)
 
 	go func() { done <- runner.Enqueue("лишняя", 10) }()
@@ -187,8 +182,6 @@ func TestShutdownWaitsForRunningJob(t *testing.T) {
 	}
 }
 
-// Оставшиеся в очереди задачи не выполняются: каждая — это десятки запросов
-// к Riot, растягивать из-за них остановку сервиса неправильно.
 func TestShutdownDropsQueuedJobs(t *testing.T) {
 	service := &fakeSyncer{
 		started: make(chan string, 1),
@@ -258,8 +251,6 @@ func TestShutdownIsIdempotent(t *testing.T) {
 	require.NoError(t, runner.Shutdown(ctx), "повторный вызов не должен паниковать на закрытом канале")
 }
 
-// Паника в фоновой горутине роняет процесс целиком — Recoverer из httpapi сюда
-// не достаёт, поэтому воркер обязан ловить её сам.
 func TestPanicInJobDoesNotKillWorker(t *testing.T) {
 	service := &fakeSyncer{panics: true}
 	runner := newTestRunner(t, service, 1, 4)
@@ -290,7 +281,6 @@ func TestJobErrorDoesNotStopRunner(t *testing.T) {
 	})
 }
 
-// done из Submit — то, чем тикер узнаёт о завершении пачки.
 func TestSubmitCallsDoneAfterJob(t *testing.T) {
 	service := &fakeSyncer{}
 	runner := newTestRunner(t, service, 2, 8)
@@ -314,8 +304,6 @@ func TestSubmitCallsDoneAfterJob(t *testing.T) {
 	assert.ElementsMatch(t, []string{"puuid-1", "puuid-2", "puuid-3"}, seen)
 }
 
-// Паника в задаче не должна съедать done: иначе guard тикера остался бы занятым
-// навсегда и периодическая синхронизация встала бы совсем.
 func TestSubmitCallsDoneAfterPanic(t *testing.T) {
 	runner := newTestRunner(t, &fakeSyncer{panics: true}, 1, 4)
 
@@ -329,7 +317,6 @@ func TestSubmitCallsDoneAfterPanic(t *testing.T) {
 	}
 }
 
-// Ошибка синхронизации — тоже завершение: done обязан сработать.
 func TestSubmitCallsDoneAfterError(t *testing.T) {
 	runner := newTestRunner(t, &fakeSyncer{err: errors.New("Riot прилёг")}, 1, 4)
 
@@ -343,8 +330,6 @@ func TestSubmitCallsDoneAfterError(t *testing.T) {
 	}
 }
 
-// Отброшенная задача возвращает false и намеренно не зовёт done — счётчик ожидания
-// снимает вызывающий, иначе он разошёлся бы с реальностью.
 func TestSubmitDoesNotCallDoneWhenRejected(t *testing.T) {
 	runner := NewRunner(&fakeSyncer{}, 1, 1, slog.New(slog.NewTextHandler(io.Discard, nil)))
 

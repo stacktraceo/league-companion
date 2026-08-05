@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fakeCache — минимальный кэш в памяти без TTL: время жизни проверяется в
-// пакете cache, здесь важно лишь то, ходит ли клиент в кэш и что он туда кладёт.
 type fakeCache struct {
 	mu     sync.Mutex
 	items  map[string][]byte
@@ -145,7 +143,6 @@ func TestCacheHitDoesNotSpendRateLimit(t *testing.T) {
 		"бюджет Riot тратит только реальный запрос, а не попадание в кэш")
 }
 
-// Детали матча не кэшируются: они неизменяемы и целиком уходят в matches.raw_data.
 func TestMatchDetailsAreNotCached(t *testing.T) {
 	var calls atomic.Int64
 
@@ -167,7 +164,7 @@ func TestMatchDetailsAreNotCached(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(2), calls.Load())
-	assert.Empty(t, cache.keys(), "matchTTL = 0 — кэш не трогаем вовсе")
+	assert.Empty(t, cache.keys(), "matchTTL = 0 - кэш не трогаем вовсе")
 }
 
 func TestOnlySuccessfulResponsesAreCached(t *testing.T) {

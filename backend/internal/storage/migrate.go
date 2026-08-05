@@ -15,17 +15,8 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// Миграции вшиты в бинарник: docker-compose up должен поднимать сервис одной
-// командой, без установки CLI migrate и без монтирования каталога с .sql.
-//
-//go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Migrate применяет все неприменённые миграции к базе по dsn.
-//
-// Вызывается на старте сервиса и идемпотентен: если применять нечего, возвращает
-// nil. Внутри golang-migrate берёт advisory-lock, поэтому одновременный старт
-// нескольких инстансов безопасен.
 func Migrate(dsn string, logger *slog.Logger) error {
 	source, err := iofs.New(migrationsFS, "migrations")
 	if err != nil {
@@ -67,7 +58,7 @@ func Migrate(dsn string, logger *slog.Logger) error {
 	}
 
 	if dirty {
-		return fmt.Errorf("схема БД в состоянии dirty на версии %d — требуется ручное вмешательство", version)
+		return fmt.Errorf("схема БД в состоянии dirty на версии %d - требуется ручное вмешательство", version)
 	}
 
 	logger.Info("схема БД готова", "version", version)

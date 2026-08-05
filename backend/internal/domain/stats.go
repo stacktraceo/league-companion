@@ -5,29 +5,27 @@ import (
 	"slices"
 )
 
-// Stats — агрегация участий саммонера за период (SPEC.md 3.4).
 type Stats struct {
 	Games  int
 	Wins   int
 	Losses int
 
-	// WinRate — доля побед, 0..1. Проценты форматирует клиент: две формы одного
+	// WinRate - доля побед, 0..1. Проценты форматирует клиент: две формы одного
 	// числа в API рано или поздно расходятся.
 	WinRate float64
 
-	// Суммы за период — из них считается KDA, и по ним же клиент может показать
+	// Суммы за период - из них считается KDA, и по ним же клиент может показать
 	// «в среднем за игру», не запрашивая матчи.
 	Kills   int
 	Deaths  int
 	Assists int
 
-	// KDA — агрегатный (ΣK+ΣA)/ΣD за период, как считают op.gg и u.gg.
+	// KDA - агрегатный (ΣK+ΣA)/ΣD за период, как считают op.gg и u.gg.
 	KDA float64
 
 	TopChampions []ChampionStats
 }
 
-// ChampionStats — тот же срез, но по одному чемпиону.
 type ChampionStats struct {
 	ChampionName string
 	Games        int
@@ -36,22 +34,13 @@ type ChampionStats struct {
 	KDA          float64
 }
 
-// AggregateStats считает статистику по участиям и топ-topN чемпионов по числу игр.
-//
-// Считается в Go, а не в SQL, потому что SPEC.md 3.6 и DoD требуют юнит-тесты
-// именно на агрегацию: SQL-версия проверялась бы только интеграционными тестами,
-// которые без TEST_DATABASE_URL пропускаются. Отбор строк за период остаётся
-// за Postgres.
-//
-// Порядок топа определён полностью: игры вниз, при равенстве KDA вниз, затем имя
-// вверх. Иначе он зависел бы от обхода map'ы и менялся между запросами.
 func AggregateStats(participations []MatchParticipant, topN int) Stats {
 	stats := Stats{
 		Games:        len(participations),
 		TopChampions: []ChampionStats{},
 	}
 
-	// Накопитель по чемпиону: считаем суммы, KDA и винрейт выводим в конце —
+	// Накопитель по чемпиону: считаем суммы, KDA и винрейт выводим в конце -
 	// усреднять уже усреднённое нельзя.
 	type totals struct {
 		games   int
@@ -125,9 +114,6 @@ func AggregateStats(participations []MatchParticipant, topN int) Stats {
 	return stats
 }
 
-// aggregateKDA — (K+A)/D по суммам за период. При нуле смертей делить не на что,
-// поэтому возвращаем сумму убийств и ассистов: та же конвенция, что в
-// MatchParticipant.KDA().
 func aggregateKDA(kills, deaths, assists int) float64 {
 	if deaths == 0 {
 		return float64(kills + assists)
@@ -136,7 +122,6 @@ func aggregateKDA(kills, deaths, assists int) float64 {
 	return float64(kills+assists) / float64(deaths)
 }
 
-// ratio — доля 0..1; пустой период даёт 0, а не NaN.
 func ratio(part, total int) float64 {
 	if total == 0 {
 		return 0
