@@ -1,0 +1,23 @@
+# Оверлей для сервера: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Отличий от локального стека два.
+#
+# 1. Postgres и Redis перестают публиковать порты на хост. Внутри compose-сети сервисы
+#    видят друг друга по именам, так что бэкенду это ничего не ломает, а наружу база и
+#    кэш больше не смотрят. На сервере это ещё и обязательно: 5432 и 6379 там заняты
+#    другими контейнерами, и без оверлея стек не поднимется — Docker откажется биндить.
+#
+# 2. restart: unless-stopped на всех трёх — иначе после reboot машины стек остался бы
+#    лежать, а сервер на то и сервер, чтобы подниматься самому.
+
+services:
+  postgres:
+    ports: !reset []
+    restart: unless-stopped
+
+  redis:
+    ports: !reset []
+    restart: unless-stopped
+
+  backend:
+    restart: unless-stopped
